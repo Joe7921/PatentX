@@ -1,0 +1,23 @@
+# api_pool.yaml
+# 全局数据源 API 适配器与性能限制配置文件
+
+adapters:
+  epo_ops:
+    class_path: "adapters.epo_ops_adapter.EpoOpsAdapter"
+    mock_fallback: true
+    token_budget_chars: 100
+    auth:
+      consumer_key: "MOCK_EPO_KEY"
+      consumer_secret: "MOCK_EPO_SECRET"
+
+  google_bigquery:
+    class_path: "adapters.bigquery_adapter.BigQueryAdapter"
+    mock_fallback: false
+    token_budget_chars: 100
+    project_id: "patentx-gcp-mock"
+
+  the_lens:
+    class_path: "adapters.lens_adapter.LensAdapter"
+    mock_fallback: true
+    token_budget_chars: 100
+    token: "MOCK_LENS_TOKEN"

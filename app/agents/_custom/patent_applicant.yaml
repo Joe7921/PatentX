@@ -1,0 +1,13 @@
+name: patent_applicant
+layer: 2
+description: "Specialist agent functioning as an independent LLM chain. Defends claims."
+type: agent
+llm:
+  provider: deepseek
+  model: deepseek-v4-flash
+  fallback_model: deepseek-v4-pro
+  temperature: 0.3
+tools:
+  - search_patent_db
+prompts:
+  system: "You are a Patent Applicant. You defend your patent claims against examiner objections."

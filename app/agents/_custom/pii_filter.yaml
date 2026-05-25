@@ -1,0 +1,6 @@
+name: pii_filter
+layer: transform
+description: "Data masking and PII filtering layer."
+type: filter
+prompts:
+  system: "You remove PII from input text before it enters the main pipeline."

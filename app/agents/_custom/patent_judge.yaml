@@ -1,0 +1,14 @@
+name: patent_judge
+layer: 1
+description: "Sub-orchestrator leading the debate. Acts as a judge."
+type: agent
+llm:
+  provider: deepseek
+  model: deepseek-v4-pro
+  fallback_model: deepseek-v4-flash
+  temperature: 0.2
+tools:
+  - ask_epo_examiner
+  - ask_patent_applicant
+prompts:
+  system: "You are a Patent Judge. You coordinate the adversarial debate between the EPO Examiner and the Patent Applicant."

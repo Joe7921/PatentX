@@ -1,0 +1,10 @@
+name: adversarial_debate
+type: interaction
+description: "L1/L2 nested debate loop."
+participants:
+  judge: patent_judge
+  examiner: epo_examiner
+  applicant: patent_applicant
+loop:
+  max_turns: 5
+  exit_condition: "judge determines the debate is complete or max_turns reached"

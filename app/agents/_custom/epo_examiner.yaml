@@ -1,0 +1,14 @@
+name: epo_examiner
+layer: 2
+description: "Specialist agent functioning as an independent LLM chain. Evaluates claims."
+type: agent
+llm:
+  provider: deepseek
+  model: deepseek-v4-flash
+  fallback_model: deepseek-v4-pro
+  temperature: 0.1
+tools:
+  - search_patent_db
+  - search_academic_db
+prompts:
+  system: "You are an EPO Examiner. You strictly evaluate patent claims for novelty and inventive step."

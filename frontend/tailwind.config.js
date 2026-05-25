@@ -1,0 +1,24 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        outfit: ['Outfit', 'sans-serif'],
+        inter: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        aurora: {
+          sky: '#87CEEB',
+          mint: '#98FF98',
+          teal: '#008080'
+        }
+      }
+    },
+  },
+  plugins: [],
+}
+

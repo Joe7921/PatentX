@@ -1,0 +1,38 @@
+{
+  "pipeline_name": "PatentX_Workflow",
+  "version": "1.0",
+  "topology": "hierarchical_nested",
+  "global_routing": {
+    "layer_0": [
+      {
+        "step": "transform",
+        "component": "app/agents/_custom/pii_filter.yaml"
+      },
+      {
+        "step": "retrieval",
+        "description": "Initial data gathering"
+      },
+      {
+        "step": "debate",
+        "component": "app/interactions/_custom/adversarial_debate.yaml",
+        "nested_subgraph": {
+          "layer_1": {
+            "controller": "app/agents/_custom/patent_judge.yaml",
+            "layer_2_tools": [
+              "app/agents/_custom/epo_examiner.yaml",
+              "app/agents/_custom/patent_applicant.yaml"
+            ]
+          }
+        },
+        "hitl_breakpoints": [
+          "after_debate_turn",
+          "before_final_decision"
+        ]
+      },
+      {
+        "step": "report",
+        "description": "Final output generation"
+      }
+    ]
+  }
+}

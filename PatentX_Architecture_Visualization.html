@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatentX 架构可视化交互中心 | Novoscan 深度融合</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        :root {
+            --bg-dark: #030712;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --purple: #8b5cf6;
+            --purple-glow: rgba(139, 92, 246, 0.3);
+            --blue: #0ea5e9;
+            --blue-glow: rgba(14, 165, 233, 0.3);
+            --green: #10b981;
+            --green-glow: rgba(16, 185, 129, 0.2);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245, 158, 11, 0.2);
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans SC', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        header {
+            padding: 2.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(3, 7, 18, 0.8);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(to right, #a78bfa, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            font-size: 0.75rem;
+            border: 1px solid var(--purple);
+            padding: 0.1rem 0.4rem;
+            border-radius: 99px;
+            color: #fff;
+            -webkit-text-fill-color: initial;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+        }
+
+        nav a:hover, nav a.active {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 2rem auto;
+        }
+
+        /* Tabs Section */
+        .tabs-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .tab-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--purple) 0%, #6d28d9 100%);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 4px 20px var(--purple-glow);
+        }
+
+        .tab-content {
+            display: none;
+            animation: slideUp 0.5s ease-out forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--purple), var(--blue));
+            opacity: 0.5;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-title i {
+            color: var(--blue);
+        }
+
+        /* Topology Diagram CSS */
+        .topology-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+            padding: 2rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            border: 1px dashed var(--card-border);
+        }
+
+        .topo-row {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .topo-node {
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 180px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .topo-node:hover {
+            transform: scale(1.05);
+            border-color: var(--blue);
+            box-shadow: 0 0 15px var(--blue-glow);
+        }
+
+        .topo-node.active-tool {
+            border-color: var(--purple);
+            box-shadow: 0 0 15px var(--purple-glow);
+        }
+
+        .topo-node.active-tool::after {
+            content: 'SUPER TOOL';
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            background: var(--purple);
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .topo-node h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .topo-node p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .topo-arrow-down {
+            width: 2px;
+            height: 40px;
+            background: linear-gradient(to bottom, var(--blue), var(--purple));
+            position: relative;
+        }
+
+        .topo-arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -4px;
+            width: 10px;
+            height: 10px;
+            border-left: 2px solid var(--purple);
+            border-bottom: 2px solid var(--purple);
+            transform: rotate(-45deg);
+        }
+
+        /* Courtroom Simulator CSS */
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .simulator-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .simulation-controls {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn-sim {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-sim:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-sim-primary {
+            background: linear-gradient(135deg, var(--blue) 0%, #0284c7 100%);
+            border: none;
+            box-shadow: 0 4px 15px var(--blue-glow);
+        }
+
+        .btn-sim-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.5);
+        }
+
+        .btn-sim:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .simulation-visualizer {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .court-stage {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 220px;
+            position: relative;
+        }
+
+        .court-agent {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(17, 24, 39, 0.8);
+            border: 2px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+            padding: 0.5rem;
+            z-index: 10;
+        }
+
+        .court-agent span {
+            font-size: 0.65rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .court-agent.active {
+            transform: scale(1.15);
+            border-color: var(--purple);
+            box-shadow: 0 0 25px var(--purple-glow);
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        .court-agent.examiner.active {
+            border-color: var(--blue);
+            box-shadow: 0 0 25px var(--blue-glow);
+            background: rgba(14, 165, 233, 0.15);
+        }
+
+        .court-agent.judge.active {
+            border-color: var(--amber);
+            box-shadow: 0 0 25px var(--amber-glow);
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        /* HITL Suspension Alert */
+        .hitl-alert {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(245, 158, 11, 0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid var(--amber);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            width: 80%;
+            max-width: 450px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+
+        .hitl-alert.active {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .hitl-alert h4 {
+            color: var(--amber);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .hitl-input-area {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .hitl-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--amber);
+            padding: 0.5rem;
+            border-radius: 6px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        /* Terminal Console */
+        .terminal-console {
+            background: #05070c;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            height: 180px;
+            overflow-y: auto;
+            color: #38bdf8;
+            font-size: 0.85rem;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        .terminal-line {
+            margin-bottom: 0.4rem;
+            animation: fadeIn 0.3s forwards;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .terminal-tag {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tag-sys { color: var(--text-muted); }
+        .tag-lawyer { color: var(--purple); }
+        .tag-examiner { color: var(--blue); }
+        .tag-judge { color: var(--amber); }
+        .tag-hitl { color: var(--green); }
+
+        /* Step Indicators */
+        .sim-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.75rem;
+        }
+
+        .sim-step {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .sim-step.active {
+            color: var(--blue);
+        }
+
+        .sim-step.completed {
+            color: var(--green);
+        }
+
+        /* Features Sandplay List */
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-3px);
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card:nth-child(even) .feature-icon {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--purple);
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .feature-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Micro-animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* SVG Connections */
+        .line-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .animated-path {
+            stroke-dasharray: 8;
+            animation: dash 30s linear infinite;
+        }
+
+        .animated-path.active {
+            stroke: var(--purple);
+            stroke-width: 2.5;
+            animation: dash 10s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -1000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">⚡ PatentX Architecture <span>Super Tool</span></div>
+        <nav>
+            <a href="#topology" class="active">系统拓扑</a>
+            <a href="#simulator">听证舱演练</a>
+            <a href="#sandplay">五层大沙盘</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="hero">
+            <h1>PatentX 系统架构可视化中心</h1>
+            <p>通过交互式数字沙盘，通俗易懂地剖析多智能体对抗辩论、人机协作（HITL）及 Novoscan 底层融合的技术逻辑。</p>
+            
+            <div class="tabs-container">
+                <button class="tab-btn active" onclick="switchTab('topology-tab', this)">
+                    🌐 系统级深度兼容拓扑
+                </button>
+                <button class="tab-btn" onclick="switchTab('simulator-tab', this)">
+                    ⚖️ 线上听证会交互演练
+                </button>
+                <button class="tab-btn" onclick="switchTab('sandplay-tab', this)">
+                    🧱 五层工程实现大沙盘
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 1: SYSTEM TOPOLOGY -->
+        <div id="topology-tab" class="tab-content active">
+            <div class="grid-2">
+                <div class="glass-card">
+                    <div class="card-title">🌐 Novoscan 宿主生态融合关系</div>
+                    <p style="margin-bottom: 1.5rem;">PatentX 既是一个<strong>独立的业务板块</strong>（可单独游离在外服务于客户），也是一个<strong>超级插件 (Super-Tool)</strong>。无论其最终形态如何演进，始终是 Novoscan 生态的重要组成部分，其核心能力可被 Novoscan 中央 Agent 无缝调度与融合。</p>
+                    
+                    <div class="topology-container">
+                        <div class="topo-row">
+                            <div class="topo-node" onclick="showNodeDetail('client')">
+                                <h4>用户终端 UI</h4>
+                                <p>探测舱上传/双屏看板</p>
+                            </div>
+                        </div>
+                        <div class="topo-arrow-down"></div>
+                        <div class="topo-row">
+                            <div class="topo-node" onclick="showNodeDetail('gateway')">
+                                <h4>API 网关 & SSE 总线</h4>
+                                <p>流式数据转发分发中心</p>
+                            </div>
+                        </div>
+                        <div class="topo-arrow-down"></div>
+                        <div class="topo-row" style="background: rgba(139, 92, 246, 0.05); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                            <div class="topo-node" onclick="showNodeDetail('novoscan')">
+                                <h4>Novoscan 中央 Agent</h4>
+                                <p>顶层大脑 / 任务派发器</p>
+                            </div>
+                            <div class="topo-node active-tool" onclick="showNodeDetail('patentx')">
+                                <h4>PatentX 听证引擎</h4>
+                                <p>多智能体对抗辩论图</p>
+                            </div>
+                        </div>
+                        <div class="topo-arrow-down"></div>
+                        <div class="topo-row">
+                            <div class="topo-node" onclick="showNodeDetail('infrastructure')">
+                                <h4>共享基座</h4>
+                                <p>AI Provider / 状态DB / S3</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="display: flex; flex-direction: column; justify-content: center;">
+                    <div class="card-title">📌 架构节点技术释义 (点击左侧节点)</div>
+                    <div id="node-info-content" style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; min-height: 250px;">
+                        <h3 style="color: var(--blue); margin-bottom: 0.5rem;">Novoscan 基座与 PatentX 的交互关系</h3>
+                        <p style="font-size: 0.95rem; color: var(--text-secondary);">当用户上传欧洲专利诊断申请后，Novoscan 的中央 Agent (Central Agent) 接收到需求，通过底层内置插件注册表发现 PatentX 具备“分析欧洲专利局 (EPO) 创新性”的能力。中央 Agent 随即将其唤醒并传输参数，将剩余工作完全交给 PatentX 听证引擎处理，同时前端通过 SSE 实时监听 PatentX 输出的听证日志。</p>
+                        <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--purple); font-weight: bold;">点击左侧任何节点，查看代码级的兼容性约束与职责设计。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: COURTROOM SIMULATOR -->
+        <div id="simulator-tab" class="tab-content">
+            <div class="glass-card">
+                <div class="card-title">⚖️ 线上听证会与 HITL 过程模拟器</div>
+                <p>在此模拟一次真实的专利评估过程。在抗辩过程中，系统会在遭遇逻辑分歧点时暂停（HITL），等待您的技术介入以继续模拟。</p>
+
+                <div class="simulator-grid">
+                    <div class="simulation-controls">
+                        <h3 style="font-size: 1.1rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">中控室</h3>
+                        <button id="btn-start" class="btn-sim btn-sim-primary" onclick="startSimulation()">🎬 启动模拟诊断</button>
+                        <button id="btn-step" class="btn-sim" onclick="nextStep()" disabled>➡️ 下一步 (抗辩)</button>
+                        <button id="btn-hitl-quick" class="btn-sim" style="border-color: var(--amber); color: var(--amber);" onclick="injectHITL('本特征采用三角形晶格排布，能带完全关闭。')" disabled>👨‍⚕️ 注入人类释明</button>
+                        <button class="btn-sim" onclick="resetSimulation()">🔄 重置模拟</button>
+                        
+                        <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary);">
+                            <strong style="color: var(--blue);">模拟步骤：</strong><br/>
+                            1. 上传与预解析 (S3 & PII脱敏)<br/>
+                            2. 审查员起诉，律师质证<br/>
+                            3. 出现技术争议，挂起等待人类释明 (HITL)<br/>
+                            4. 法官最终裁决与概率计算
+                        </div>
+                    </div>
+
+                    <div class="simulation-visualizer" id="visualizer-card">
+                        <!-- Step Progress -->
+                        <div class="sim-steps">
+                            <span class="sim-step" id="step-1">1. 物理安全</span>
+                            <span class="sim-step" id="step-2">2. 检索预热</span>
+                            <span class="sim-step" id="step-3">3. 庭审对抗</span>
+                            <span class="sim-step" id="step-4">4. 人工干预 (HITL)</span>
+                            <span class="sim-step" id="step-5">5. 最终裁决</span>
+                        </div>
+
+                        <!-- Canvas Area -->
+                        <div class="court-stage">
+                            <!-- SVG lines linking them -->
+                            <svg class="line-svg">
+                                <path id="path-lawyer-judge" d="M 120,110 L 290,110" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" fill="none" class="animated-path"/>
+                                <path id="path-examiner-judge" d="M 460,110 L 290,110" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" fill="none" class="animated-path"/>
+                            </svg>
+
+                            <div class="court-agent lawyer" id="agent-lawyer">
+                                👨‍💼 申请方律师
+                                <span>(辩护 Agent)</span>
+                            </div>
+
+                            <div class="court-agent judge" id="agent-judge">
+                                ⚖️ 主审法官
+                                <span>(裁决 Agent)</span>
+                            </div>
+
+                            <div class="court-agent examiner" id="agent-examiner">
+                                🕵️ EPO 审查员
+                                <span>(公诉 Agent)</span>
+                            </div>
+
+                            <!-- HITL Suspension Box -->
+                            <div class="hitl-alert" id="hitl-panel">
+                                <h4>⚠️ 主审法官：本席需要人类专家释明</h4>
+                                <p style="font-size: 0.8rem; color: var(--text-secondary);">申请方律师与EPO审查员针对“第3项权利要求的衬底材料晶格排布”产生严重分歧。系统已挂起以保护服务器算力。</p>
+                                <div class="hitl-input-area">
+                                    <input type="text" class="hitl-input" id="hitl-text" value="本特征采用三角形晶格排布，能带隙完全关闭。">
+                                    <button class="btn-sim btn-sim-primary" style="padding: 0.2rem 1rem; font-size: 0.8rem;" onclick="submitHITL()">提交</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Console -->
+                        <div class="terminal-console" id="console">
+                            <div class="terminal-line"><span class="terminal-tag tag-sys">[系统]</span> 准备完毕，等待指令开启模拟...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: TDD 5-LAYER SANDPLAY -->
+        <div id="sandplay-tab" class="tab-content">
+            <div class="glass-card">
+                <div class="card-title">🧱 TDD 五层大沙盘解读</div>
+                <p>将复杂的 TDD 文字剥离，以清晰的分类大卡片形式向您直观展示整个系统的非功能性约束与交付手段。</p>
+
+                <div class="feature-list">
+                    <div class="feature-card">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>物理隔绝与生命周期 (S3 TTL)</h3>
+                        <p>用户上传的 PDF/Word 专利文件绝不留存在应用服务器磁盘中。前端获取 Presigned URL 直接直传云端对象存储桶，存储桶设置 24 小时硬销毁生命周期 (TTL)，到期无情物理粉碎，实现绝对的数据阅后即焚。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔍</div>
+                        <h3>PII 实体脱敏拦截切面</h3>
+                        <p>在所有向外部 LLM 节点（Lawyer, Examiner, Judge）发送 Prompt 前，系统的代理拦截器会以正则加小模型自动对专利中的公司名称、联系方式、发明人进行遮罩脱敏。最终生成的 PDF 报告落地前再动态还原，保障核心隐私。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⏱️</div>
+                        <h3>3分钟优雅降级 (Seamless Handover)</h3>
+                        <p>在听证会因技术极为前沿导致辩论胶着时，一旦达到 3 分钟，前端 SSE 链接优雅切断，展示“合议中”提示；后端 Worker 保持不降级深度，继续全量推理，最终通过邮件等异步渠道分发报告。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🚀</div>
+                        <h3>智能流量金丝雀发布</h3>
+                        <p>Prompt 的升级伴随极高风险。网关仅会将 5% 的低危流量（如免费测试账号，或者非核心 IPC 分类的专利）引流至升级了新 Prompt 的新版 Worker 节点，监测法官宣判状态，成功后再逐渐推全。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>影子测试与兼容 CI</h3>
+                        <p>在新版 Worker 投产前，CI 流水线会自动拉取线上历史真实的听证快照，在影子环境回放测试，若判定结果与老版偏差率 > 15%，触发编译卡点。同时强校验旧版挂起的 HITL 快照是否兼容新版本反序列化。</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>极致 Agent 观测 (Langfuse)</h3>
+                        <p>引入 Langfuse 专用大模型可观测底座。精确记录并展现每一轮对抗的 Prompt 拓扑、TTFT（首字响应）、TPS（输出速率）。一旦某节点出错，抛出包括 RAG 参数、提示词的 Error Snapshot 快照，供开发人员一键重放 Debug。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Tab switching logic
+        function switchTab(tabId, btn) {
+            // Hide all tab contents
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+
+            // Show target
+            document.getElementById(tabId).classList.add('active');
+
+            // Deactivate all tab buttons
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(button => button.classList.remove('active'));
+
+            // Activate current
+            btn.classList.add('active');
+        }
+
+        // Sidebar navigation highlight on scroll
+        const navLinks = document.querySelectorAll('nav a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+
+        // Topo Node Info Database
+        const nodeInfo = {
+            client: {
+                title: "用户终端 UI (Novoscan Client / Upload Hub)",
+                details: "负责前端拖拽上传与全息看板展现。当用户选择上传后，通过 API 获取 S3 预签名 URL 将大文件直传 OSS，保证系统极度安全。在加载中利用 SSE (Server-Sent Events) 接收后端听证会的实况打字流进行实时绘制。"
+            },
+            gateway: {
+                title: "API 网关 & SSE 核心推流总线",
+                details: "网关除了常规的限流熔断外，其最核心功能是负责维持客户端长达数分钟的 SSE 长连接。当后端 Worker 消费任务并驱动 Agent 辩论时，网关将 Worker 发送出的图状态变更流以 Server-Sent Events 形式，稳定推送给前端以缓解用户焦虑。"
+            },
+            novoscan: {
+                title: "Novoscan 中央 Agent",
+                details: "Novoscan 的顶级调度核心。当接收到涉及“欧洲专利局 (EPO) 新颖性检索分析”需求时，中央 Agent 将 PatentX 作为可调用超级工具激活，传入预置数据，并将结果链路完美集成到用户的总体分析报告流中。"
+            },
+            patentx: {
+                title: "PatentX 定制积木与管线组 (Pipeline & Custom Blocks)",
+                details: "彻底抛弃硬编码状态机，全面采用 YAML 驱动的完全积木化设计。将【申请律师】、【审查员】等定义为专属 AgentBlock，并复用底座的 adversarial_debate (交互模式) 积木。整个听证引擎被编排为一份 patentx_pipeline.json，由 Novoscan 的 PipelineCompiler 动态编译运行。"
+            },
+            infrastructure: {
+                title: "共享底层基础设施 (Infrastructure Shared)",
+                details: "深度复用 Novoscan 的既有底座：包括通用模型调用总线 `AiClientProvider`（统一计费与重试限流）；用户状态与 Credit 数据库（保障扣费一致性）；以及对象存储（直传并依靠 24H 生命周期强制物理销毁文件）。"
+            }
+        };
+
+        function showNodeDetail(nodeKey) {
+            const data = nodeInfo[nodeKey];
+            if (!data) return;
+
+            // Highlight node in topo
+            const nodes = document.querySelectorAll('.topo-node');
+            nodes.forEach(node => node.style.borderColor = 'var(--card-border)');
+
+            // Find clicked element (approximate)
+            event.currentTarget.style.borderColor = 'var(--purple)';
+
+            const container = document.getElementById('node-info-content');
+            container.innerHTML = `
+                <h3 style="color: var(--purple); margin-bottom: 0.5rem; animation: fadeIn 0.4s;">${data.title}</h3>
+                <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; animation: fadeIn 0.4s;">${data.details}</p>
+                <div style="margin-top: 1rem; font-size: 0.8rem; background: rgba(0,0,0,0.4); padding: 0.5rem 1rem; border-radius: 6px; border-left: 3px solid var(--purple);">
+                    <strong>Novoscan 兼容性：</strong> 底层完全复用 API 鉴权、Token 预算限制与模型重试切面。
+                </div>
+            `;
+        }
+
+        // Courtroom Simulator State Machine
+        let simStep = 0;
+        const consoleEl = document.getElementById('console');
+        const pathLawyer = document.getElementById('path-lawyer-judge');
+        const pathExaminer = document.getElementById('path-examiner-judge');
+        const agentLawyer = document.getElementById('agent-lawyer');
+        const agentExaminer = document.getElementById('agent-examiner');
+        const agentJudge = document.getElementById('agent-judge');
+
+        function appendConsole(tag, text, type = 'sys') {
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = `<span class="terminal-tag tag-${type}">[${tag}]</span> <span style="color: #94a3b8; font-size:0.75rem;">${time}</span> - ${text}`;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function resetSimulation() {
+            simStep = 0;
+            consoleEl.innerHTML = '';
+            appendConsole('系统', '准备完毕，等待指令开启模拟...', 'sys');
+            
+            // UI Resets
+            document.querySelectorAll('.sim-step').forEach(el => el.className = 'sim-step');
+            document.querySelectorAll('.court-agent').forEach(el => el.classList.remove('active'));
+            pathLawyer.classList.remove('active');
+            pathExaminer.classList.remove('active');
+            document.getElementById('hitl-panel').classList.remove('active');
+            
+            document.getElementById('btn-start').disabled = false;
+            document.getElementById('btn-step').disabled = true;
+            document.getElementById('btn-hitl-quick').disabled = true;
+        }
+
+        function startSimulation() {
+            resetSimulation();
+            document.getElementById('btn-start').disabled = true;
+            
+            // Phase 1: Upload & Sanitization
+            document.getElementById('step-1').className = 'sim-step active';
+            appendConsole('系统', '接收到中央 Agent 的 PatentX 工具调用请求。开始处理...', 'sys');
+            
+            setTimeout(() => {
+                appendConsole('物理安全', '读取 S3 直传临时授权。检测到输入专利文件 (Size: 2.4MB)。', 'sys');
+            }, 600);
+
+            setTimeout(() => {
+                appendConsole('隐私拦截', 'PII 脱敏拦截器启动：成功遮蔽 2 处发明人姓名与 1 处公司敏感词。', 'sys');
+                document.getElementById('step-1').className = 'sim-step completed';
+                document.getElementById('step-2').className = 'sim-step active';
+            }, 1200);
+
+            setTimeout(() => {
+                appendConsole('RAG预热', '检测到 IPC 分类号为 "H01L 21/02" (半导体制造工艺)。开始异步并发拉取 EPO 历史特征分类缓存。', 'sys');
+            }, 1800);
+
+            setTimeout(() => {
+                appendConsole('RAG预热', '缓存库加载成功 (已缓存 12 个历史高度冲突的 EPO 对比文件片段)。', 'sys');
+                document.getElementById('step-2').className = 'sim-step completed';
+                document.getElementById('step-3').className = 'sim-step active';
+                document.getElementById('btn-step').disabled = false;
+                appendConsole('系统', '听证会环境准备完毕。请点击【下一步】开启法庭抗辩阶段。', 'sys');
+            }, 2400);
+        }
+
+        function nextStep() {
+            if (simStep === 0) {
+                // First round: Examiner attacks
+                agentExaminer.classList.add('active');
+                pathExaminer.classList.add('active');
+                appendConsole('审查员', '对比本专利权利要求1，检索到现有技术 EP098765A。其记载的“单层石墨烯化学气相沉积工艺”与本技术重合，破坏了新颖性与创造性！', 'examiner');
+                simStep = 1;
+            } else if (simStep === 1) {
+                // Second round: Lawyer counters
+                agentExaminer.classList.remove('active');
+                pathExaminer.classList.remove('active');
+                agentLawyer.classList.add('active');
+                pathLawyer.classList.add('active');
+                appendConsole('律师', '抗辩！我方技术的关键在于，在气相沉积过程中引入了“极微量水蒸气作为催化刻蚀剂”，这使得成膜迁移率提升了 300%，这是对比文献中完全没有披露的！', 'lawyer');
+                simStep = 2;
+            } else if (simStep === 2) {
+                // Third round: Judge evaluates, fails and triggers HITL
+                agentLawyer.classList.remove('active');
+                pathLawyer.classList.remove('active');
+                agentJudge.classList.add('active');
+                appendConsole('法官', '收到双方诉求。然而，我方审查数据库中，关于“极微量水蒸气”的具体气压范围及其在三角形晶格沉积中的物理机制存在描述歧义。双方各执一词，出现技术僵局。', 'judge');
+                
+                setTimeout(() => {
+                    appendConsole('系统', '【HITL 挂起触发】底座引擎抛出 hitl_interrupt 事件，触发前端 AgenticPauseCard，等待人类专家释明。', 'sys');
+                    document.getElementById('step-3').className = 'sim-step completed';
+                    document.getElementById('step-4').className = 'sim-step active';
+                    document.getElementById('hitl-panel').classList.add('active');
+                    document.getElementById('btn-step').disabled = true;
+                    document.getElementById('btn-hitl-quick').disabled = false;
+                }, 1000);
+                simStep = 3;
+            }
+        }
+
+        function submitHITL() {
+            const explanation = document.getElementById('hitl-text').value;
+            injectHITL(explanation);
+        }
+
+        function injectHITL(explanation) {
+            document.getElementById('hitl-panel').classList.remove('active');
+            document.getElementById('btn-hitl-quick').disabled = true;
+            
+            appendConsole('人类专家', `注入技术释明：“${explanation}”`, 'hitl');
+            appendConsole('系统', '前端通过 /resume/stream 路由向底座注入专家指令，Pipeline 积木管线继续执行。', 'sys');
+            
+            setTimeout(() => {
+                agentJudge.classList.add('active');
+                appendConsole('法官', '接收到人类专家的释明。该参数范围在三角形晶格中具有独创的能带隙闭合效应，确认该技术点相较于 EP098765A 具有显著的非显而易见性（创造性成立）。', 'judge');
+                document.getElementById('step-4').className = 'sim-step completed';
+                document.getElementById('step-5').className = 'sim-step active';
+            }, 1200);
+
+            setTimeout(() => {
+                appendConsole('法官', '最终裁决：欧洲专利申请授权概率：92% (极高)。建议立即向 EPO 递交。', 'judge');
+                appendConsole('系统', '听证会结束，生成完整诊断分析数据，导出带有 Novoscan 水印的企业级 PDF 报告。', 'sys');
+                document.getElementById('step-5').className = 'sim-step completed';
+                agentJudge.classList.remove('active');
+            }, 2400);
+        }
+    </script>
+</body>
+</html>

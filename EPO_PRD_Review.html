@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>欧洲专利（EPO）创新性智能诊断系统 PRD</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: 280px;
+            height: 100vh;
+            position: fixed;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 2rem;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #fff;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* Main Content */
+        main {
+            margin-left: 280px;
+            padding: 4rem;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        header {
+            margin-bottom: 4rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+        }
+
+        section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        /* Staggered animation delays for sections */
+        section:nth-of-type(1) { animation-delay: 0.2s; }
+        section:nth-of-type(2) { animation-delay: 0.4s; }
+        section:nth-of-type(3) { animation-delay: 0.6s; }
+        section:nth-of-type(4) { animation-delay: 0.8s; }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.75rem;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            margin: 1.5rem 0 0.75rem 0;
+            color: #e2e8f0;
+        }
+
+        p, li {
+            color: #cbd5e1;
+            margin-bottom: 0.75rem;
+        }
+
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        li::marker {
+            color: var(--accent);
+        }
+
+        /* BDD Card Style */
+        .bdd-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid var(--accent);
+            padding: 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s;
+        }
+        
+        .bdd-card:hover {
+            transform: translateX(5px);
+        }
+
+        .bdd-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            text-transform: uppercase;
+        }
+
+        .tag-given { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .tag-when { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .tag-then { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .tag-and { background: rgba(167, 139, 250, 0.2); color: #c084fc; border: 1px solid rgba(167,139,250,0.3); }
+
+        .bdd-line {
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Table Style */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            color: #fff;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Checklist */
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checklist-item:hover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        input[type="checkbox"] {
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-top: 0.25rem;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Highlight Text */
+        .highlight {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .danger-text { color: #fca5a5; font-weight: 600; }
+        .success-text { color: #6ee7b7; font-weight: 600; }
+        .feature-image { width: 100%; border-radius: 12px; margin: 1.5rem 0; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--glass-border); }
+        .mermaid { background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; margin: 1.5rem 0; display: flex; justify-content: center; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true, theme:'dark'});</script>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">⚡ PatentX Core</div>
+        <a href="#stage1" class="nav-link active">1. 战略定位 (Why)</a>
+        <a href="#stage2" class="nav-link">2. 核心模块 (What)</a>
+        <a href="#stage3" class="nav-link">3. 验收标准 (AC)</a>
+        <a href="#stage4" class="nav-link">4. 骨架与数据 (NFR)</a>
+    </nav>
+
+    <main>
+        <header>
+            <h1>欧洲专利创新性诊断系统 PRD</h1>
+            <p class="subtitle">Experience & Retention Driven · 体验与留存驱动型</p>
+        </header>
+
+        <section id="stage1">
+            <h2>🎯 阶段一：战略定位与成功基准 (Why & Who)</h2>
+            
+            <h3>产品愿景与战略语境</h3>
+            <p>为国内有出海需求的企业与代理机构提供<span class="highlight">极简、高透明度</span>的欧洲专利出海创新性评估服务。系统通过跨语种比对分析，帮助客户在投入高昂的跨国申请费前，准确预判在欧洲专利局（EPO）的授权概率，降低出海试错成本，增强平台专业信任感。</p>
+
+            <h3>重塑的问题陈述 (Problem Statement)</h3>
+            <ul>
+                <li><span class="danger-text">传统误区</span>："我们需要给客户做一个专利检索网站。"</li>
+                <li><span class="success-text">重塑后</span>："中国申请人在向欧洲提交专利时，因存在严重的语言壁垒及对EPO检索规则不熟悉，无法预判其技术在欧洲的'新颖性'与'创造性'。盲目申请极易遭遇由于被驳回而带来的巨大资金与时间沉没成本。客户亟需一种低认知摩擦的方式，提前看到阻碍其授权的海外现有技术。"</li>
+            </ul>
+
+            <h3>量化的成功标准 (Success Metrics)</h3>
+            <ul>
+                <li>**转化与留存**：首月使用服务生成报告的用户，次月复用率（复购/再次评估）需达到 <strong>25%</strong> 以上。</li>
+                <li>**交付价值验证**：PDF诊断报告下载率需达到 <strong>80%</strong> 以上。</li>
+                <li>**认知摩擦降低**：在等待分析的"解析加载页面"跳出率（Drop-off rate）需控制在 <strong>5%</strong> 以内。</li>
+            </ul>
+
+            <h3>边界界定 (Out of Scope)</h3>
+            <ul>
+                <li>不包含美国（USPTO）、日本、PCT等其他国家和地区的专利检索。</li>
+                <li>不包含对欧洲专利申请文本的自动机器翻译生成（不代写）。</li>
+                <li>不包含商标、外观设计专利的分析。</li>
+            </ul>
+        </section>
+
+        <section id="stage2">
+            <h2>🧩 阶段二：核心模块与执行漏斗 (What)</h2>
+
+            <h3>功能名称与需求描述</h3>
+            <p><strong>EPO 出海概率探测引擎 (EPO Probability Engine)</strong></p>
+            <p>允许用户上传中文专利文档（PDF/Word），系统自动解析并跨语种提取技术特征，在欧洲专利库中寻找阻碍其授权的核心"对比文件"，计算出申请通过概率，并在前端提供交互式的对比看板以及PDF导出功能。</p>
+
+            <h3>相关页面设计与信息层级</h3>
+            <ul>
+                <li><strong>页面 A：极简探测舱 (Upload Hub)</strong> - 中心化拖拽上传区，明确提示"上传中文文本，一键探测欧洲授权概率"。</li>
+                <li><strong>页面 B：全息思考面板 (Thinking Indicator)</strong> - 动态流式展示底层处理节点："提取中文权利要求 -> 跨语种语义映射 -> 检索 EPO 数据库 -> 冲突特征比对中..."，缓解等待焦虑。</li>
+                <li><strong>页面 C：诊断交互看板 (Diagnostic Dashboard)</strong> - 主体分屏视图。左侧展示中文权利要求，右侧展示欧洲"对比文件"。通过高亮色块进行"一对一连线"映射。</li>
+                <li><strong>页面 D：一键导出中心 (Export Action)</strong> - 悬浮按钮，生成结构化、带企业水印的正式 PDF 诊断报告。</li>
+            </ul>
+            <img src="file:///C:/Users/zhouh/.gemini/antigravity/brain/86b913c4-8aeb-4b35-aa8d-4c9e03d7114f/patent_dashboard_mockup_1779262741223.png" alt="诊断交互看板概念图" class="feature-image">
+
+            <h3>用户旅程 (User Journey)</h3>
+            <ol>
+                <li><strong>上传触发</strong>：拖入中文专利交底书/PDF。</li>
+                <li><strong>视觉安抚</strong>：进入思考面板，看着系统依次亮起解析、检索、比对的节点灯。</li>
+                <li><strong>结果触达</strong>：约 1-3 分钟后，切入看板，看到通过概率评分。</li>
+                <li><strong>深度探索</strong>：点击对比文件，双屏视图自动高亮显示冲突特征，瞬间理解新颖性不足原因。</li>
+                <li><strong>离线决策</strong>：下载精美PDF报告，用于内部分享与决策。</li>
+            </ol>
+            <div class="mermaid">
+            graph LR
+                A[用户上传<br/>中文专利] --> B(思考面板<br/>解析与检索)
+                B --> C{是否超时?}
+                C -- 是 --> D[异步邮件通知]
+                C -- 否 --> E[诊断结果看板<br/>展示概率]
+                E --> F[点击对比文件<br/>双屏高亮交互]
+                F --> G[下载PDF报告]
+            </div>
+        </section>
+
+        <section id="stage3">
+            <h2>⚖️ 阶段三：验收标准 (Acceptance Criteria)</h2>
+
+            <h3>核心流程验收 (BDD 语法)</h3>
+            
+            <div class="bdd-card">
+                <h4>场景一：正向探测流程</h4>
+                <div class="bdd-line"><span class="bdd-tag tag-given">GIVEN</span>用户登录系统，停留在“极简探测舱”页面</div>
+                <div class="bdd-line"><span class="bdd-tag tag-when">WHEN</span>用户拖拽上传一份格式为 .pdf、大小为 5MB 的中文专利文档</div>
+                <div class="bdd-line"><span class="bdd-tag tag-then">THEN</span>系统必须拦截界面跳转，展示“全息思考面板”动效</div>
+                <div class="bdd-line"><span class="bdd-tag tag-and">AND</span>评估完成后，必须自动重定向至“诊断交互看板”，显示概率评分和对比文件列表</div>
+            </div>
+
+            <div class="bdd-card">
+                <h4>场景二：负向防御机制（文件不合规）</h4>
+                <div class="bdd-line"><span class="bdd-tag tag-given">GIVEN</span>用户停留在“极简探测舱”页面</div>
+                <div class="bdd-line"><span class="bdd-tag tag-when">WHEN</span>用户试图上传 .jpg 图片或超过 50MB 的文档</div>
+                <div class="bdd-line"><span class="bdd-tag tag-then">THEN</span>前端系统必须在 0.5 秒内拒绝上传并拦截</div>
+                <div class="bdd-line"><span class="bdd-tag tag-and">AND</span>抛出红色Toast提示：“格式不受支持或体积过大”，绝不允许进入加载页面</div>
+            </div>
+
+            <div class="bdd-card">
+                <h4>场景三：极端边界场景（无对比文件）</h4>
+                <div class="bdd-line"><span class="bdd-tag tag-given">GIVEN</span>用户的专利属于极端前沿的“无人区”技术</div>
+                <div class="bdd-line"><span class="bdd-tag tag-when">WHEN</span>系统完成 EPO 数据库检索，命中对比文件数量为 0</div>
+                <div class="bdd-line"><span class="bdd-tag tag-then">THEN</span>看板的通过概率必须显示为 “99%（极高）”</div>
+                <div class="bdd-line"><span class="bdd-tag tag-and">AND</span>诊断理由提示“未检索到高相似度技术，建议尽快提交”，并隐藏对比分屏视图</div>
+            </div>
+
+            <h3>UI 与交互强制检查清单</h3>
+            <label class="checklist-item">
+                <input type="checkbox">
+                <span><strong>高亮映射规则</strong>：在双屏视图中，点击右侧英文段落时，左侧对应中文段落必须在 0.2 秒内滚动至居中并高亮。</span>
+            </label>
+            <label class="checklist-item">
+                <input type="checkbox">
+                <span><strong>PDF 导出规格</strong>：必须包含企业防伪水印，A4 纵向排版，必须包含目录页与评估结论摘要页。</span>
+            </label>
+            <label class="checklist-item">
+                <input type="checkbox">
+                <span><strong>状态保持</strong>：在“思考面板”加载中途刷新网页，系统必须恢复当前分析进度，绝不允许要求用户重新操作或重新扣费。</span>
+            </label>
+        </section>
+
+        <section id="stage4">
+            <h2>⚙️ 阶段四：隐形骨架与数据内核 (NFR & Data)</h2>
+
+            <h3>非功能性需求 (NFR)</h3>
+            <ul>
+                <li><span class="danger-text">🔐 极高机密性约束 (Security)</span>：交底书在推理提取时必须脱敏。物理文件在服务器留存时间不得超过 24 小时（或生成报告后立即物理销毁）。</li>
+                <li><span class="warning">⚡ 性能极限 (Performance)</span>：单份文档（10万字内）端到端评估时间<strong>不得超过 3 分钟</strong>。若超时，必须在前端降级为异步模式（“完成后短信/邮件通知”）。</li>
+            </ul>
+
+            <h3>数据追踪矩阵 (Tracking Plan)</h3>
+            <div class="mermaid">
+            sequenceDiagram
+                participant User as 用户
+                participant Frontend as 探测舱前端
+                participant Backend as 大模型核心引擎
+                participant Analytics as 数据分析中台
+                
+                User->>Frontend: 上传专利文件
+                Frontend->>Backend: 发送解析请求
+                Backend-->>Analytics: Track: analysis_started
+                Backend->>Backend: AI跨语种检索与对比
+                Backend-->>Frontend: 返回概率与对比文件
+                Frontend-->>Analytics: Track: analysis_completed
+                User->>Frontend: 点击某个对比文件
+                Frontend-->>Analytics: Track: comparison_interacted
+                User->>Frontend: 点击下载PDF
+                Frontend-->>Analytics: Track: report_downloaded
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>事件名称 (Event Name)</th>
+                        <th>触发条件 (Triggers)</th>
+                        <th>属性参数 (Properties)</th>
+                        <th>商业映射 (Business Mapping)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>analysis_started</code></td>
+                        <td>成功接收文件并调用解析 API</td>
+                        <td><code>file_size</code>, <code>tech_domain</code></td>
+                        <td>追踪分析漏斗起点</td>
+                    </tr>
+                    <tr>
+                        <td><code>analysis_completed</code></td>
+                        <td>概率评分和看板成功渲染</td>
+                        <td><code>processing_time</code>, <code>final_score</code></td>
+                        <td>监控系统性能及模型响应成功率</td>
+                    </tr>
+                    <tr>
+                        <td><code>comparison_interacted</code></td>
+                        <td>点击侧边栏具体对比文件时</td>
+                        <td><code>prior_art_id</code>, <code>click_depth</code></td>
+                        <td><span class="success-text">核心留存指标</span>：衡量“双屏对比视图”真实使用率</td>
+                    </tr>
+                    <tr>
+                        <td><code>report_downloaded</code></td>
+                        <td>成功生成并下载 PDF 报告</td>
+                        <td><code>page_count</code></td>
+                        <td>衡量服务的最终业务闭环和交付价值</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // Simple script to handle navigation highlighting on scroll
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
