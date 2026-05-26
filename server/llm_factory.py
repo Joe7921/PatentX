@@ -86,9 +86,7 @@ class MockLLMClient:
         api_base = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
         print(f"[DEBUG _call_model] api_key value: '{api_key}', len: {len(api_key) if api_key else 0}, type: {type(api_key)}")
         
-        # 快速测试过滤：如果使用的是默认的测试假 Key，直接抛出异常快速降级
-        if api_key and api_key.startswith("sk-c714d64"):
-            raise ValueError("Test Environment: Fake DEEPSEEK_API_KEY detected. Fast failing to trigger local fallback template.")
+
 
         # 完全在生产环境中运行：若未设置 API KEY，直接抛出异常，不再静默退回到 Mock 状态
         if not api_key:
@@ -213,9 +211,7 @@ class MockLLMClient:
         api_key = os.getenv("DEEPSEEK_API_KEY")
         api_base = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
         
-        # 快速测试过滤：如果使用的是默认的测试假 Key，直接抛出异常快速降级
-        if api_key and api_key.startswith("sk-c714d64"):
-            raise ValueError("Test Environment: Fake DEEPSEEK_API_KEY detected. Fast failing to trigger local fallback template.")
+
 
         if not api_key:
             raise ValueError("Production Configuration Error: DEEPSEEK_API_KEY is not configured.")
@@ -330,19 +326,25 @@ class MockLLMClient:
 
         if tools and current_round <= 3:
             tool_calls = []
-            import secrets
+            import hashlib
+            seed_str = f"{last_user_msg}_{current_round}"
+            seed = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
             
-            # 从所有工具中找出一个未被调用的工具，随机选择
-            available_tool_names = [t.get("function", {}).get("name") for t in tools]
-            uncalled_tools = [name for name in available_tool_names if name not in called_tools]
+            # 从所有工具中找出一个未被调用的工具，决定性选择
+            available_tool_names = sorted([t.get("function", {}).get("name") for t in tools])
+            uncalled_tools = sorted([name for name in available_tool_names if name not in called_tools])
             
             target_tools_to_call = []
             if uncalled_tools:
-                # 随机选择1-2个未调用的工具
-                num_to_pick = secrets.randbelow(min(2, len(uncalled_tools))) + 1
-                target_tools_to_call = secrets.SystemRandom().sample(uncalled_tools, num_to_pick)
+                num_to_pick = (seed % min(2, len(uncalled_tools))) + 1
+                temp_seed = seed
+                for _ in range(num_to_pick):
+                    if not uncalled_tools: break
+                    idx = temp_seed % len(uncalled_tools)
+                    target_tools_to_call.append(uncalled_tools.pop(idx))
+                    temp_seed //= max(1, len(uncalled_tools))
             else:
-                target_tools_to_call.append(secrets.choice(available_tool_names))
+                target_tools_to_call.append(available_tool_names[seed % len(available_tool_names)])
                 
             for func_name in target_tools_to_call:
                 tool_schema = next((t for t in tools if t.get("function", {}).get("name") == func_name), None)
@@ -355,21 +357,29 @@ class MockLLMClient:
                 mock_args = {}
                 for k, v in props.items():
                     val_type = v.get("type", "string")
+                    prop_seed = int(hashlib.md5(f"{seed}_{k}".encode()).hexdigest(), 16)
                     if val_type == "string":
                         if k in ["query", "claim", "domestic_feature", "feature"]:
                             import re
-                            words = re.findall(r'\b[A-Za-z]+\b', last_user_msg)
+                            words = sorted(re.findall(r'\b[A-Za-z]+\b', last_user_msg))
                             if len(words) > 3:
-                                import secrets
-                                mock_args[k] = " ".join(secrets.SystemRandom().sample(words, min(5, len(words))))
+                                sample_k = min(5, len(words))
+                                sample_words = []
+                                t_seed = prop_seed
+                                for _ in range(sample_k):
+                                    if not words: break
+                                    idx = t_seed % len(words)
+                                    sample_words.append(words.pop(idx))
+                                    t_seed //= max(1, len(words))
+                                mock_args[k] = " ".join(sample_words)
                             else:
-                                mock_args[k] = f"mock_{k}_{secrets.randbelow(900) + 100}"
+                                mock_args[k] = f"mock_{k}_{(prop_seed % 900) + 100}"
                         else:
-                            mock_args[k] = f"mock_{k}_{secrets.randbelow(900) + 100}"
+                            mock_args[k] = f"mock_{k}_{(prop_seed % 900) + 100}"
                     elif val_type in ("integer", "number"):
-                        mock_args[k] = secrets.randbelow(100) + 1
+                        mock_args[k] = (prop_seed % 100) + 1
                     elif val_type == "boolean":
-                        mock_args[k] = secrets.choice([True, False])
+                        mock_args[k] = bool(prop_seed % 2)
                     elif val_type == "object":
                         mock_args[k] = {"mock_key": "mock_val"}
                     elif val_type == "array":
@@ -379,7 +389,7 @@ class MockLLMClient:
 
                 
                 tool_calls.append({
-                    "id": f"call_mock_{current_round}_{func_name}_{secrets.randbelow(9000) + 1000}",
+                    "id": f"call_mock_{current_round}_{func_name}_{(seed % 9000) + 1000}",
                     "type": "function",
                     "function": {
                         "name": func_name,

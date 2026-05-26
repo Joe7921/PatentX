@@ -19,12 +19,15 @@ def main():
 
     log_file = open(os.path.join(server_dir, "uvicorn.log"), "w")
     # 1. 启动 uvicorn 真实服务后台进程
-    print("Starting FastAPI dev server via uvicorn...")
+    print("Starting FastAPI dev server via uvicorn with failure injection...")
+    server_env = os.environ.copy()
+    server_env["INJECT_LLM_FAILURE"] = "true"
     server_proc = subprocess.Popen(
-        ["py", "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8089"],
+        ["py", "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8090"],
         cwd=server_dir,
         stdout=log_file,
         stderr=log_file,
+        env=server_env,
         text=True
     )
     
@@ -40,11 +43,12 @@ def main():
         sys.exit(1)
         
     try:
-        # 2. 运行 verify_backend.py，将端口指定为 8089
+        # 2. 运行 verify_backend.py，将端口指定为 8090
         print("Running verify_backend.py integration test...")
-        # 传递环境变量指定测试端口
+        # 传递环境变量指定测试端口和故障注入
         env = os.environ.copy()
-        env["TEST_PORT"] = "8089"
+        env["TEST_PORT"] = "8090"
+        env["INJECT_LLM_FAILURE"] = "true"
         
         test_res = subprocess.run(
             ["py", "verify_backend.py"],
@@ -55,8 +59,11 @@ def main():
         )
         
         print("Test run completed.")
-        print(f"--- TEST STDOUT ---\n{test_res.stdout}")
-        print(f"--- TEST STDERR ---\n{test_res.stderr}")
+        with open(os.path.join(server_dir, "test_output.txt"), "w", encoding="utf-8") as f:
+            f.write(test_res.stdout)
+        with open(os.path.join(server_dir, "test_err.txt"), "w", encoding="utf-8") as f:
+            f.write(test_res.stderr)
+        print("Done writing to test_err.txt")
         
         ret_code = test_res.returncode
     finally:

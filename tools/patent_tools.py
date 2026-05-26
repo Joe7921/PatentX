@@ -3,91 +3,63 @@
 
 from typing import List, Dict, Any, Tuple
 
-# 仿真 EPO 专利库 (Parent-Child 嵌套结构)
-# 父表: Patent Details & Claims
-# 子表: Features (Technical Limitations)
-SIMULATED_EPO_DATABASE = {
-    "EP3812049A1": {
-        "title": "Distributed Status Streaming for Automated Agents",
-        "patent_family": "US11029482B2, CN112938472A",
-        "claim_1": "A system for orchestrating automated agents, comprising: a server interface configured to transmit analysis state changes as a text/event-stream; a pause coordinator to detect a hitl_interrupt signal and suspend execution; and a resume hook to resume stream transmission upon receiving an authentication token.",
-        "features": [
-            {
-                "id": "EP3812049A1_F1",
-                "text": "a server interface configured to transmit analysis state changes as a text/event-stream",
-                "focus": "SSE流式传输"
-            },
-            {
-                "id": "EP3812049A1_F2",
-                "text": "a pause coordinator to detect a hitl_interrupt signal and suspend execution",
-                "focus": "HITL中断与挂起"
-            },
-            {
-                "id": "EP3812049A1_F3",
-                "text": "a resume hook to resume stream transmission upon receiving an authentication token",
-                "focus": "鉴权恢复机制"
-            }
-        ]
-    },
-    "EP4012055A2": {
-        "title": "Multi-Agent Hierarchical Debate System",
-        "patent_family": "US11582912B1",
-        "claim_1": "A method for coordinating multiple specialized agents in a patent debate, including: routing requests through a layer-1 judge agent; delegating claim analysis to a layer-2 novelty examiner agent; and compiling local feature discrepancies into a unified dispute matrix.",
-        "features": [
-            {
-                "id": "EP4012055A2_F1",
-                "text": "routing requests through a layer-1 judge agent",
-                "focus": "法官协调代理"
-            },
-            {
-                "id": "EP4012055A2_F2",
-                "text": "delegating claim analysis to a layer-2 novelty examiner agent",
-                "focus": "审查员专精分析"
-            },
-            {
-                "id": "EP4012055A2_F3",
-                "text": "compiling local feature discrepancies into a unified dispute matrix",
-                "focus": "特征差异矩阵合并"
-            }
-        ]
-    }
-}
+
+import re
 
 class PatentDatabase:
     @staticmethod
     def recursive_retrieve(claim_text: str) -> List[Tuple[str, Dict[str, Any]]]:
         """
         Parent-Child Recursive Retrieval 仿真:
-        解析输入的国内权利要求 claim_text 中的关键词，匹配子特征，并召回整个父权利要求。
+        解析输入的国内权利要求 claim_text 中的关键词，动态生成相关的 Mock 专利数据，完全去除硬编码关联。
         """
         results = []
-        claim_lower = claim_text.lower()
         
-        # 简单关键字检索
-        keywords_to_patents = {
-            "流": "EP3812049A1",
-            "stream": "EP3812049A1",
-            "中断": "EP3812049A1",
-            "pause": "EP3812049A1",
-            "辩论": "EP4012055A2",
-            "debate": "EP4012055A2",
-            "法官": "EP4012055A2",
-            "judge": "EP4012055A2",
-            "矩阵": "EP4012055A2",
-            "matrix": "EP4012055A2"
-        }
-        
-        matched_ids = set()
-        for kw, pid in keywords_to_patents.items():
-            if kw in claim_lower:
-                matched_ids.add(pid)
-                
-        # 兜底：如果没匹配到，默认全部拉回作为评估候选
-        if not matched_ids:
-            matched_ids = set(SIMULATED_EPO_DATABASE.keys())
+        # 提取 claim_text 中的有效词汇用于生成 mock 专利
+        words = re.findall(r'\b\w+\b', claim_text)
+        if len(words) < 3:
+            words.extend(["system", "method", "device", "apparatus", "processing"])
             
-        for pid in matched_ids:
-            results.append((pid, SIMULATED_EPO_DATABASE[pid]))
+        import hashlib
+        seed = int(hashlib.md5(claim_text.encode()).hexdigest(), 16)
+        
+        num_patents = (seed % 2) + 2
+        for i in range(num_patents):
+            pid = f"EP{(seed + i) % 9000000 + 1000000}A1"
+            
+            sorted_words = sorted(words)
+            sample_words = []
+            temp_seed = seed + i
+            k = min(3, len(sorted_words))
+            for _ in range(k):
+                if not sorted_words: break
+                idx = temp_seed % len(sorted_words)
+                sample_words.append(sorted_words.pop(idx))
+                temp_seed //= max(1, len(sorted_words))
+            
+            title = f"Dynamic system for {sample_words[0]} and {sample_words[1]}" if len(sample_words) > 1 else f"Dynamic system for {sample_words[0]}"
+            if len(sample_words) >= 3:
+                claim_1 = f"A method involving {sample_words[0]}, comprising: processing {sample_words[1]} to generate {sample_words[2]}."
+            elif len(sample_words) == 2:
+                claim_1 = f"A method involving {sample_words[0]}, comprising: processing {sample_words[1]}."
+            else:
+                claim_1 = f"A method involving {sample_words[0]}."
+            
+            features = []
+            for j, w in enumerate(sample_words):
+                features.append({
+                    "id": f"{pid}_F{j+1}",
+                    "text": f"a processing unit configured for {w}",
+                    "focus": f"{w} handling"
+                })
+                
+            mock_patent = {
+                "title": title,
+                "patent_family": f"US{(seed + i) % 90000000 + 10000000}B2",
+                "claim_1": claim_1,
+                "features": features
+            }
+            results.append((pid, mock_patent))
             
         return results
 
@@ -101,7 +73,34 @@ def search_academic_db(query: str) -> str:
     """
     Mock: 模拟学术文献检索 (非专利文献 NPL)
     """
-    return f"[MOCK NPL] 找到与 '{query}' 相关的学术引文：IEEE Transactions on AI, Vol. 12 (2025)。"
+    import hashlib
+    seed = int(hashlib.md5(query.encode()).hexdigest(), 16)
+    
+    journals = ['Nature', 'Science', 'IEEE Transactions on Quantum Computing', 'ACM Computing Surveys']
+    journal = journals[seed % len(journals)]
+    volume = (seed % 100) + 1
+    year = (seed % 26) + 2000
+    
+    words = re.findall(r'\b\w+\b', query)
+    words = sorted([w for w in words if len(w) > 2])
+    if not words:
+        words = ["system", "method", "analysis", "technology"]
+    
+    k = min(2, len(words))
+    sample_words = []
+    temp_seed = seed
+    for _ in range(k):
+        if not words: break
+        idx = temp_seed % len(words)
+        sample_words.append(words.pop(idx))
+        temp_seed //= max(1, len(words))
+        
+    title_words = " and ".join(sample_words).title() if sample_words else "Technology"
+    title = f"Advances in {title_words}"
+    
+    msg = f"[MOCK_TRANSPORT] 找到与 '{query}' 相关的学术引文：{title} - {journal}, Vol. {volume} ({year})。"
+    print(msg)
+    return msg
 
 def generate_feature_alignment_matrix(
     domestic_feature_id: str,
@@ -113,39 +112,78 @@ def generate_feature_alignment_matrix(
     """
     模拟 L2 epo_examiner 对特征进行逐案对齐比对，并引入专家批注覆盖。
     """
-    annotation_key = f"{domestic_feature_id}_{prior_art_id}_{prior_art_feature['id']}"
+    import json
+    if isinstance(prior_art_feature, str):
+        try:
+            prior_art_feature = json.loads(prior_art_feature)
+        except Exception:
+            prior_art_feature = {"id": f"{prior_art_id}_F", "text": prior_art_feature, "focus": ""}
+            
+    if not isinstance(prior_art_feature, dict):
+        prior_art_feature = {"id": f"{prior_art_id}_F", "text": str(prior_art_feature), "focus": ""}
+            
+    if isinstance(expert_annotations, str):
+        try:
+            expert_annotations = json.loads(expert_annotations)
+        except Exception:
+            expert_annotations = {}
+            
+    if not isinstance(expert_annotations, dict):
+        expert_annotations = {}
+        
+    if not isinstance(domestic_feature, str):
+        domestic_feature = str(domestic_feature)
+
+    normalized_df_id = str(domestic_feature_id)
+    normalized_pa_id = str(prior_art_id)
+
+    annotation_key = f"{normalized_df_id}_{normalized_pa_id}_{prior_art_feature.get('id', '')}"
     
-    # 默认对比逻辑 (基于文本包含或语义猜测)
+    # 默认对比逻辑 (基于轻量级 NLP 词汇重合度评估)
     default_status = "Not_Disclosed"
     default_impact = "Low"
     default_expl = "未在对比文件中发现对应披露。"
     
-    focus_kw = prior_art_feature.get("focus", "").lower()
-    df_lower = domestic_feature.lower()
-    
-    if focus_kw in df_lower or any(word in df_lower for word in focus_kw.split(" ")):
-        default_status = "Fully_Disclosed"
-        default_impact = "High"
-        default_expl = f"对比特征 '{prior_art_feature['text']}' 完全公开了该国内技术特征。"
+    import re
+    def get_words(text):
+        # Naive space splitting as requested
+        return set(str(text).lower().split())
+        
+    df_words = get_words(domestic_feature)
+    focus_words = set()
+    if prior_art_feature.get("text"):
+        focus_words.update(get_words(prior_art_feature["text"]))
+    focus_kw = prior_art_feature.get("focus", "")
+    if focus_kw:
+        focus_words.update(get_words(focus_kw))
+        
+    if df_words and focus_words:
+        overlap = len(df_words.intersection(focus_words))
+        union = len(df_words.union(focus_words))
+        similarity = overlap / union if union > 0 else 0
+        if similarity > 0.3: # Threshold 0.3 as requested
+            default_status = "Fully_Disclosed"
+            default_impact = "High"
+            default_expl = f"对比特征 '{prior_art_feature.get('text', '')}' 与国内技术特征具有较高的语义重合度 (相似度: {similarity:.2f})，判定为完全公开。"
     
     # 专家批注覆盖机制 (HITL)
-    if annotation_key in expert_annotations:
+    if annotation_key in expert_annotations and isinstance(expert_annotations[annotation_key], dict):
         expert_data = expert_annotations[annotation_key]
         return {
-            "domestic_feature_id": domestic_feature_id,
+            "domestic_feature_id": normalized_df_id,
             "domestic_feature": domestic_feature,
-            "prior_art_feature_id": prior_art_feature["id"],
-            "prior_art_feature_text": prior_art_feature["text"],
+            "prior_art_feature_id": prior_art_feature.get("id", ""),
+            "prior_art_feature_text": prior_art_feature.get("text", ""),
             "status": expert_data.get("status", default_status),
             "novelty_impact": expert_data.get("novelty_impact", default_impact),
             "explanation": f"[专家修正] {expert_data.get('details', default_expl)}"
         }
         
     return {
-        "domestic_feature_id": domestic_feature_id,
+        "domestic_feature_id": normalized_df_id,
         "domestic_feature": domestic_feature,
-        "prior_art_feature_id": prior_art_feature["id"],
-        "prior_art_feature_text": prior_art_feature["text"],
+        "prior_art_feature_id": prior_art_feature.get("id", ""),
+        "prior_art_feature_text": prior_art_feature.get("text", ""),
         "status": default_status,
         "novelty_impact": default_impact,
         "explanation": default_expl
