@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 interface Particle {
   x: number;
@@ -8,13 +9,25 @@ interface Particle {
   tx: number;
   ty: number;
   radius: number;
-  color: string;
+  r: number;
+  g: number;
+  b: number;
+  a: number;
   stiffness: number;
   damping: number;
 }
 
-export const AuroraBackground: React.FC = () => {
+interface AuroraBackgroundProps {
+  isHovered?: boolean;
+}
+
+export default function AuroraBackground({ isHovered = false }: AuroraBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isHoveredRef = useRef(isHovered);
+
+  useEffect(() => {
+    isHoveredRef.current = isHovered;
+  }, [isHovered]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,65 +35,72 @@ export const AuroraBackground: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    let width = 0;
+    let height = 0;
     let animationFrameId: number;
-    let width = window.innerWidth;
-    let height = window.innerHeight;
 
     const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      width = parent.clientWidth;
+      height = parent.clientHeight;
       canvas.width = width;
       canvas.height = height;
-
-      // 调整粒子目标位置，防止越界
-      particles.forEach(p => {
-        p.tx = Math.random() * width;
-        p.ty = Math.random() * height;
-        p.radius = Math.min(width, height) * (0.4 + Math.random() * 0.2);
-      });
     };
 
-    // 科技蓝 (Sky/Blue)、梦幻紫 (Purple/Violet)、学术青 (Teal/Cyan)
-    const colors = [
-      'rgba(59, 130, 246, 0.35)',  // 科技蓝
-      'rgba(147, 51, 234, 0.3)',   // 梦幻紫
-      'rgba(6, 182, 212, 0.35)',   // 学术青
+    // 使用极其干净、清透的马卡龙/柔和色系，Alpha 值调低以防正片叠底变脏
+    const baseColors = [
+      { r: 80, g: 160, b: 255, a: 0.35 },  // 清透天蓝
+      { r: 200, g: 120, b: 255, a: 0.25 },  // 清透粉紫
+      { r: 80, g: 220, b: 240, a: 0.35 },  // 清透青蓝
     ];
+    // 复制 5 组，总共 15 个极光球，均匀铺满整个输入舱背部
+    const colors = [...baseColors, ...baseColors, ...baseColors, ...baseColors, ...baseColors];
 
-    const particles: Particle[] = colors.map(color => {
-      const rx = Math.random() * width;
-      const ry = Math.random() * height;
+    const particles: Particle[] = colors.map((c, i) => {
       return {
-        x: rx,
-        y: ry,
+        x: width / 2,
+        y: height / 2,
         vx: 0,
         vy: 0,
-        tx: Math.random() * width,
-        ty: Math.random() * height,
-        radius: Math.min(width, height) * 0.5,
-        color,
-        stiffness: 0.0005 + Math.random() * 0.0008, // 极低的 stiffness 以确保漫反射平缓
-        damping: 0.96 + Math.random() * 0.02,        // 阻尼
+        tx: width / 2,
+        ty: height / 2,
+        radius: 0, 
+        r: c.r, g: c.g, b: c.b, a: c.a,
+        stiffness: 0.0015 + Math.random() * 0.001,
+        damping: 0.85 + Math.random() * 0.04,
       };
     });
 
     window.addEventListener('resize', resize);
     resize();
 
+    const startTime = Date.now();
+
     const draw = () => {
-      // 使用 clearRect，保证透明背景
       ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'screen';
 
-      // 采用正片叠底模式，使漫反射极光在浅色底上优雅晕染
-      ctx.globalCompositeOperation = 'multiply';
+      const time = (Date.now() - startTime) * 0.0008;
+      const hovered = isHoveredRef.current;
 
-      particles.forEach(p => {
-        // 更新位置 (基于弹簧阻尼物理模型)
-        const dist = Math.hypot(p.tx - p.x, p.ty - p.y);
-        if (dist < 100) {
-          p.tx = Math.random() * width;
-          p.ty = Math.random() * height;
-        }
+      particles.forEach((p, index) => {
+        // 让 15 个球均匀分布在容器宽度的 -10% 到 110% 之间，形成一条完整的光晕带
+        const percent = particles.length > 1 ? index / (particles.length - 1) : 0.5;
+        const homeX = -width * 0.1 + (width * 1.2 * percent);
+        const homeY = height / 2;
+
+        const spreadX = hovered ? width * 0.2 : width * 0.1;
+        const spreadY = hovered ? height * 0.3 : height * 0.15;
+        
+        const floatX = Math.sin(time * 0.8 + index * 2.5) * spreadX;
+        const floatY = Math.cos(time * 0.6 + index * 1.5) * spreadY;
+        
+        const targetX = homeX + floatX;
+        const targetY = homeY + floatY;
+
+        p.tx += (targetX - p.tx) * 0.1;
+        p.ty += (targetY - p.ty) * 0.1;
 
         const ax = (p.tx - p.x) * p.stiffness;
         const ay = (p.ty - p.y) * p.stiffness;
@@ -91,10 +111,15 @@ export const AuroraBackground: React.FC = () => {
         p.x += p.vx;
         p.y += p.vy;
 
-        // 绘制漫反射径向渐变
+        // 响应式半径，悬停时按比例放大
+        const baseRadius = Math.max(150, width / 10);
+        const targetRadius = hovered ? baseRadius * 1.3 : baseRadius;
+        p.radius += (targetRadius - p.radius) * 0.1;
+
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
-        grad.addColorStop(0, p.color);
-        grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        grad.addColorStop(0, `rgba(${p.r}, ${p.g}, ${p.b}, ${p.a})`);
+        grad.addColorStop(0.4, `rgba(${p.r}, ${p.g}, ${p.b}, ${p.a * 0.5})`);
+        grad.addColorStop(1, `rgba(${p.r}, ${p.g}, ${p.b}, 0)`);
         
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -114,10 +139,16 @@ export const AuroraBackground: React.FC = () => {
   }, []);
 
   return (
-    <canvas
+    <motion.canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-[-1] bg-slate-50"
-      style={{ mixBlendMode: 'multiply' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1.5 }}
+      className="absolute inset-0 pointer-events-none z-[-1] bg-transparent"
+      style={{ 
+        mixBlendMode: 'multiply', 
+        filter: 'blur(32px)' // 提高一点模糊度，让球与球之间融合得更完美
+      }}
     />
   );
 };
