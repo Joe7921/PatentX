@@ -1,34 +1,75 @@
-# Handoff Report: Fix Strategy for Streaming Infinite Loop
+# Handoff Report
 
 ## 1. Observation
-- 在查阅了 Reviewer 1 Iter 2 的 handoff 报告，并亲自查看了 `d:\Antigravity projects\PatentX\server\main.py` 和 `d:\Antigravity projects\PatentX\frontend\src\components\DiagnosticDashboard.tsx` 文件后，发现了以下两点直接相关的现象：
-  1. `DiagnosticDashboard.tsx` 中的 `EventSource` 监听器（`onmessage` 以及 `addEventListener('hitl_interrupt')`）在收到 `hitl_interrupt` 事件时，执行了 `eventSource?.close()`，直接关闭了 SSE 连接。
-  2. `server/main.py` 中的 `/api/v1/evaluation/{id}/resume` 路由在未找到对应 `id` 时，仅返回 `{"status": "error", "message": "ID not found"}`，并未抛出 HTTP 异常，导致默认的响应状态码为 200 OK。
+- 检查 `server/agentic_engine.py` 时发现，目前代码的第 39-64 行**已经包含**了名为 `_argument_pre_processor` 的提取逻辑。
+- 当前函数签名为 `def _argument_pre_processor(tool_name: str, raw_args: Any, blackboard: Blackboard) -> Any:`。
+- 该函数针对 `generate_feature_alignment_matrix` 执行了硬编码参数检查（`domestic_feature_id`, `prior_art_id` 等），若有缺失会返回包含 `[ARGUMENT_PROCESSOR] Tool Error:` 前缀的字符串。
+- 对于 `expert_annotations` 的缺失，该函数会通过 `blackboard` 自动补全，并正确通过 `print("[ARGUMENT_PROCESSOR] Auto-filling expert_annotations...")` 输出日志。
+- `execute_agent_react` 的工具调用循环中（第 326 行）已集成该处理器：`tc_args = _argument_pre_processor(tc_name, tc_args_str, blackboard)`。
 
 ## 2. Logic Chain
-1. **连接断开导致后端清理资源**：前端在收到 `hitl_interrupt` 事件后调用 `eventSource.close()`。此时底层的 HTTP 长连接断开，FastAPI 端的生成器会捕获到 `asyncio.CancelledError`，随即执行 `finally` 块中的 `del resume_events[interrupt_id]`，从内存中删除了该 ID 对应的事件对象。
-2. **错误的恢复尝试**：用户在前端点击继续（Approve/Revise）时，前端发送 POST 请求到 `/api/v1/evaluation/{evalId}/resume`。
-3. **状态码掩盖错误**：由于后端事件已被删除，此 ID 不在 `resume_events` 中。后端返回了表示错误信息的 JSON，但状态码却是 200。
-4. **前端误判导致死循环**：前端执行 `if (response.ok)` 判断为 `true`，进而清空了 `evalId` 并将状态重置为 `STREAMING`。由于 `workflowState` 变成了 `STREAMING`，`useEffect` 重新触发并创建了新的 `EventSource` 连接，导致整个流程从头开始，而非从中断点继续，从而陷入无限循环。
+1. **现状与需求的差异**：当前代码已经实现了 R3 的核心目标（提取参数处理与打印日志）。唯一与指令不符的是函数签名。用户指定了 `_argument_pre_processor(function_name, arguments)`，而实际代码由于需要访问黑板上下文，传入了额外的 `blackboard` 参数。
+2. **逻辑完善点**：目前当参数解析失败或缺少关键字段时，代码直接 `return "[ARGUMENT_PROCESSOR] Tool Error..."`，并没有执行 `print()`。为了完全符合“记录干预日志（Log interventions）”的需求，所有发生拦截和报错的地方都应当在控制台 `print` 显式日志。
+3. **函数签名重构方案**：为了严格对齐要求的函数签名 `(function_name, arguments)` 并且不丢失 `blackboard` 依赖，建议将 `_argument_pre_processor` 的 `blackboard` 参数设置为默认参数，或者更优的做法是在其调用处使用依赖注入，不过当前由于签名只差一个参数，为了保持架构简单，最好的方式是优化现有签名，即保留 `blackboard` 传递，因为 `generate_feature_alignment_matrix` 的补全强依赖它。
 
 ## 3. Caveats
-- 这是一个纯粹的前后端状态同步与连接管理问题，当前的分析基于代码的静态审查，并未实际运行调试。但在 `EventSource` 的规范和 FastAPI 的异步流机制下，该逻辑链是确凿无疑的。
-- 考虑到这是一个 MOCK 接口，后续如果有真实的后台任务调度（如基于 Celery/Redis 等），任务的状态管理可能需要进一步与连接管理解耦。目前的修复策略针对的是当前的内存字典实现。
+- 强制去除 `blackboard` 参数将导致无法动态补齐 `expert_annotations`，因为 Agent-as-Tool 模型容易忘记传递这个用于人类专家介入的字段。
+- 建议略微放宽针对函数签名的要求（保留 `blackboard` 传递），或利用 Python 闭包（在 `execute_agent_react` 内部定义一个 wrap 函数）来提供精准的双参数接口。
+- 本报告选择“保留 `blackboard` 但增强日志打印，并更名参数以贴近需求”的温和重构方案。
 
 ## 4. Conclusion
-**修复策略方案（不执行具体代码修改）：**
+**当前进度评估**：Milestone 2 (M2) 核心的 Argument Processor 提取工作已在先前的开发周期中大部分完成。
+**重构计划**：需要进行微调，补充控制台 `print` 日志输出，并把参数名称修改为需求所指定的名称，确保所有不规范请求都能显式在终端看到拦截。
 
-1. **前端修改（DiagnosticDashboard.tsx）**：
-   - 移除在 `hitl_interrupt` 事件处理逻辑中对 `eventSource?.close()` 的调用（包括 `onmessage` 和 `addEventListener` 处）。在等待人工介入（HITL）期间，必须保持 SSE 连接开启，以接收后续的事件。
-   - 保留原有的在 `completed` 事件和 `onerror` 以及 `useEffect` 清理函数中关闭连接的逻辑。
-   - 确保当接收到 `hitl_interrupt` 时只更改 `workflowState` 和记录 `evalId`。
+### 详细步骤计划与代码片段
 
-2. **后端修改（server/main.py）**：
-   - 修改 `/api/v1/evaluation/{id}/resume` 路由，在未找到对应 ID 时，使用 FastAPI 的 `HTTPException` 抛出 `404 Not Found` 错误，而不是返回 200 OK 加上错误 JSON。
-   - 例如：`raise HTTPException(status_code=404, detail="ID not found")`。
-   - 这样前端在调用 `fetch` 恢复时，`response.ok` 将为 `false`，从而触发前端的错误处理，防止意外重置状态。
+**步骤 1：优化 `_argument_pre_processor` 函数签名与日志机制**
+修改 `server/agentic_engine.py` 第 39 行附近的 `_argument_pre_processor`，增加异常情况下的 `print`，并将参数名对齐需求。
+
+```python
+def _argument_pre_processor(function_name: str, arguments: Any, blackboard: Blackboard = None) -> Any:
+    """统一的参数预处理器，负责对输入进行清洗和补全"""
+    try:
+        if isinstance(arguments, str):
+            tc_args = json.loads(arguments)
+        else:
+            tc_args = arguments
+    except Exception:
+        error_msg = "[ARGUMENT_PROCESSOR] Tool Error: Invalid JSON arguments"
+        print(error_msg)
+        return error_msg
+
+    if not isinstance(tc_args, dict):
+        error_msg = "[ARGUMENT_PROCESSOR] Tool Error: Arguments must be a JSON object"
+        print(error_msg)
+        return error_msg
+
+    if function_name == "generate_feature_alignment_matrix":
+        required = ["domestic_feature_id", "domestic_feature", "prior_art_id", "prior_art_feature"]
+        for req in required:
+            if req not in tc_args:
+                error_msg = f"[ARGUMENT_PROCESSOR] Tool Error: Missing required parameter '{req}'"
+                print(error_msg)
+                return error_msg
+        
+        # Keep the logging if it fixes simple formatting issues
+        if "expert_annotations" not in tc_args or not isinstance(tc_args["expert_annotations"], str):
+            print("[ARGUMENT_PROCESSOR] Auto-filling expert_annotations for generate_feature_alignment_matrix")
+            annotations = getattr(blackboard, "expert_annotations", {}) if blackboard else {}
+            tc_args["expert_annotations"] = json.dumps(annotations, ensure_ascii=False)
+
+    return tc_args
+```
+
+**步骤 2：同步修改调用点**
+在 `execute_agent_react` 函数（约 326 行）处，将原有的调用修改为匹配新参数名：
+```python
+                tc_args_str = tool_call.get("function", {}).get("arguments", "{}")
+                
+                # 传入 function_name 和 arguments
+                tc_args = _argument_pre_processor(tc_name, tc_args_str, blackboard)
+```
 
 ## 5. Verification Method
-1. **代码检查**：核查 `DiagnosticDashboard.tsx` 中 `hitl_interrupt` 相关的分支，确认没有 `eventSource?.close()`；核查 `server/main.py` 中的 resume 路由，确认包含了 404 的抛出。
-2. **构建验证**：在前端目录运行 `npm run build` 或对应的验证命令确认语法正确。
-3. **功能测试**：启动后端与前端，触发流程并等待进入 Pause 状态。此时后端不应出现 Cancelled 错误。点击恢复按钮后，前端应当进入完成状态，而不是重新开始 `Initializing...`。
+- **文件检查**：使用 `view_file` 确认 `server/agentic_engine.py` 中 `_argument_pre_processor` 是否更新了 `print` 日志以及参数签名。
+- **系统测试**：运行 `python server/test_harness.py` 或项目构建测试，观察无效参数调用时，终端是否能明确打印出包含 `[ARGUMENT_PROCESSOR] Tool Error` 前缀的拦截日志，且未发生奔溃。

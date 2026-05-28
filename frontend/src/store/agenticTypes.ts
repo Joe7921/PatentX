@@ -3,6 +3,43 @@
  * 包含Agent主题配色、ReAct步骤、阶段状态、投票记录等
  */
 
+/** 特征对齐项定义 */
+export interface AlignmentFeature {
+  domestic_feature_id?: string;
+  prior_art_feature_id?: string;
+  domestic_feature?: string;
+  prior_art_feature_text?: string;
+  status: string;
+  explanation?: string;
+  [key: string]: unknown;
+}
+
+/** 检索到的专利项定义 */
+export interface RetrievedPatent {
+  id: string;
+  patent_family?: string;
+  title?: string;
+  claim_1?: string;
+  [key: string]: unknown;
+}
+
+/** 专家注释定义 */
+export interface ExpertAnnotation {
+  [key: string]: unknown;
+}
+
+export interface BlackboardState {
+  eval_id: string | null;
+  current_step: string;
+  claim_features: string[];
+  feature_alignment_matrices: Record<string, AlignmentFeature[]>;
+  expert_annotations: Record<string, ExpertAnnotation>;
+  debate_logs: string[];
+  overall_probability: number | null;
+  overall_conclusion: string | null;
+  retrieved_patents: RetrievedPatent[];
+}
+
 /** Agent主题配色定义 */
 export interface AgentTheme {
   id: string;           // first_examiner, second_examiner, chairman, applicant_representative, legal_examiner
@@ -106,11 +143,36 @@ export interface VoteRecord {
   revealed: boolean;  // 是否已翻开
 }
 
+/** 动态拓扑节点 */
+export interface TopologyNode {
+  id: string;          // 唯一ID
+  type: 'system' | 'phase' | 'agent' | 'tool'; 
+  status: 'pending' | 'active' | 'completed';
+  label: string;       // 展示名称
+  agentId?: string;    // 关联的 Agent ID
+  toolName?: string;   // 关联的 Tool 名称
+  content?: string;    // 用于抽屉展开显示的详细日志内容
+  parentId?: string;   // 来源父节点ID，用于画线
+  timestamp: number;
+}
+
+/** 动态拓扑连线 */
+export interface TopologyEdge {
+  id: string;
+  source: string;
+  target: string;
+  status: 'active' | 'completed';
+}
+
 /** Agentic时间线总状态 */
 export interface AgenticTimelineState {
   phases: PhaseState[];
   votes: VoteRecord[];
+  topologyNodes: TopologyNode[]; // 拓扑节点
+  topologyEdges: TopologyEdge[]; // 拓扑连线
   currentPhase: number;  // 当前活跃阶段(1-4), 0表示未开始
+  hitlAfterPhase?: number; // 在此阶段之后触发 HITL
+  votingPhaseId?: number;  // 发生投票的阶段 ID
   legalExaminerSummoned: boolean;
   hitlActive: boolean;
   hitlReason: string;
@@ -120,25 +182,16 @@ export interface AgenticTimelineState {
 /** 创建初始时间线状态 */
 export function createInitialTimelineState(): AgenticTimelineState {
   return {
-    phases: [
-      {
-        id: 1, name: 'document_analysis', title: '文档分析与检索',
-        status: 'pending', agents: ['first_examiner'], steps: [],
-      },
-      {
-        id: 2, name: 'internal_review', title: '内部审查会议',
-        status: 'pending', agents: ['second_examiner', 'chairman'], steps: [],
-      },
-      {
-        id: 3, name: 'oral_proceedings', title: '口头审理',
-        status: 'pending', agents: ['first_examiner', 'second_examiner', 'chairman', 'applicant_representative'], steps: [],
-      },
-      {
-        id: 4, name: 'final_decision', title: '最终裁决',
-        status: 'pending', agents: ['first_examiner', 'second_examiner', 'chairman'], steps: [],
-      },
-    ],
+    phases: [],
     votes: [],
+    topologyNodes: [{
+      id: 'root_system',
+      type: 'system',
+      status: 'active',
+      label: 'PatentX 决策中枢',
+      timestamp: Date.now()
+    }],
+    topologyEdges: [],
     currentPhase: 0,
     legalExaminerSummoned: false,
     hitlActive: false,

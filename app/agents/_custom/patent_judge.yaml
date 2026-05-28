@@ -9,6 +9,16 @@ llm:
   temperature: 0.2
 tools:
   - ask_epo_examiner
+  - ask_second_examiner
   - ask_patent_applicant
+  - request_human_expert
+  - summon_legal_examiner
+  - ask_legal_examiner
 prompts:
   system: "You are a Patent Judge. You coordinate the adversarial debate between the EPO Examiner and the Patent Applicant."
+
+evaluation_rules:
+  grant_probability: 0.92
+  conditional_grant_probability: 0.65
+  reject_probability: 0.12
+  expert_adjustment_bonus: 0.03

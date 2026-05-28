@@ -1,36 +1,29 @@
-# Handoff Report: Milestone 1 Backend Mock Strategy
+# Handoff Report
 
 ## 1. Observation
-- `SCOPE.md` specifies the need for a FastAPI mock backend.
-- Endpoints required: `GET /api/v1/analyze/stream` (SSE stream) and `POST /api/v1/evaluation/{id}/resume`.
-- The stream must pause and emit `hitl_interrupt` containing an `{ "id": "<eval_id>" }`.
-- `verify_backend.py` must test the stream generation, intercept the `hitl_interrupt`, and call the resume endpoint to unblock it.
-- `server/` directory is not yet created.
+- 当前 `main` 分支（`8ef36a1`）的 `frontend/src/App.tsx` 中，`step === 'UPLOAD'` 状态直接渲染了 `<UploadHub onUpload={handleUpload} />`，并且顶部挂载了一个全局的无状态 `<AuroraBackground />`。
+- 通过 `git log --all` 和 `git show b36acd0:frontend/src/components/...` 发现，在提交 `b36acd0a6a9a34f87f647b4057e335b07b8bbf02` 中，原本存在包含 Logo、打字机动画（`TypewriterSlogan.tsx`）和响应式悬停光晕（修改版的 `AuroraBackground.tsx`）的完整 `LandingPage.tsx` 组件。
+- 在 `b36acd0` 的设计中，`LandingPage.tsx` 接收 `onUpload` 属性，并原封不动地传递给其内部嵌套的 `<UploadHub>`。
 
 ## 2. Logic Chain
-- **State Management**: To simulate a pause in the backend while keeping the SSE connection alive, we can use `asyncio.Event()` stored in a global dictionary (`evaluation_states = {}`) keyed by `eval_id`.
-- **Stream Generation**: The `GET /api/v1/analyze/stream` endpoint will:
-  1. Generate a UUID `eval_id`.
-  2. Create an `asyncio.Event` and store it.
-  3. Yield initial events using `fastapi.responses.StreamingResponse` (formatted as SSE `event: ...\ndata: ...\n\n`).
-  4. Yield `hitl_interrupt` with the `eval_id`.
-  5. Wait asynchronously: `await event.wait()`.
-  6. Yield completion events after the event is set.
-- **Resume Handling**: `POST /api/v1/evaluation/{id}/resume` will find the `asyncio.Event` by `id` and call `.set()`, thus unblocking the stream.
-- **Verification Script**: Standard synchronous `TestClient` can block when consuming streams containing `asyncio` pauses. We should use `httpx.AsyncClient(app=app, base_url="http://test")` in `verify_backend.py` to concurrently read the stream lines and dispatch the POST request without blocking.
-- **CORS**: The backend needs `CORSMiddleware` configured to `allow_origins=["*"]` to ensure the upcoming frontend Vite app can connect.
+1. **组件缺失恢复**：为了重建精心设计的首屏，必须从 Git 历史（`b36acd0`）中提取并恢复 `LandingPage.tsx` 和 `TypewriterSlogan.tsx`。
+2. **背景光晕适配**：当前版本的 `AuroraBackground` 无法接收 `isHovered` 参数且为全局渲染模式。必须同时从 `b36acd0` 中提取对应的 `AuroraBackground.tsx` 覆盖现有文件，以支持随悬停放大的局部光晕特效。
+3. **App 路由/状态替换**：在 `App.tsx` 中，`step === 'UPLOAD'` 处应替换为渲染 `<LandingPage onUpload={handleUpload} />`。同时移除顶层的 `<AuroraBackground />` 全局调用，以防背景重叠或冲突。
+4. **状态流转完整性**：用户在 `UploadHub` 点击提交后，会触发 `onUpload` 回调，`LandingPage` 会将此回调直接向上传递到 `App.tsx` 的 `handleUpload` 函数。`handleUpload` 执行 `startAnalysis(claimText)`，进而成功触发 Zustand 状态机流转。整个链路无需修改即可闭环。
 
 ## 3. Caveats
-- Using a global in-memory dictionary for state is strictly for mock purposes and would not work in a multi-worker production environment.
-- The verification script's SSE parsing logic will be basic (reading string lines) rather than using a full SSE parser, which is perfectly sufficient for testing a predictable mock backend.
+- 我们发现 `b36acd0` 提交中还涉及了 `AgenticTopology` 和 `DraftingPiP` 相关的结构（将 `App.tsx` 中的 `AgenticTimeline` 替换掉了）。在当前修复任务中，仅聚焦于 `step === 'UPLOAD'` 状态（即恢复 `LandingPage` 及其依赖），后续可能还需要确认是否也要恢复其他状态的 UI 设计。
+- 未实际执行文件替换操作（只读权限）。你需要使用 `git checkout` 提取指定文件。
 
 ## 4. Conclusion
-The implementation of the Backend Mock should proceed with the following files:
-1. `server/requirements.txt`: Include `fastapi`, `uvicorn`, `httpx`.
-2. `server/main.py`: Implement the FastAPI app, the `evaluation_states` dictionary, CORS middleware, and the two endpoints using `StreamingResponse`.
-3. `server/verify_backend.py`: Implement an `asyncio` script that uses `httpx.AsyncClient` to connect to the ASGI app directly, iterates over `response.aiter_lines()`, parses the `hitl_interrupt` ID, sends the POST `/resume` request in a background task, and asserts the stream reaches completion.
+为恢复首页设计并保持 Zustand 数据流，需要：
+1. 运行 `git checkout b36acd0a6a9a34f87f647b4057e335b07b8bbf02 -- frontend/src/components/LandingPage.tsx frontend/src/components/TypewriterSlogan.tsx frontend/src/components/AuroraBackground.tsx` 恢复 3 个 UI 核心文件。
+2. 在 `frontend/src/App.tsx` 中，移除顶层 `<AuroraBackground />` 渲染和相关的命名导入。
+3. 在 `App.tsx` 中导入 `LandingPage`，将 `step === 'UPLOAD'` 的内部组件由 `<UploadHub>` 替换为 `<LandingPage onUpload={handleUpload} />` 并调整外层 `motion.div` 的样式（详见 `analysis.md`）。
 
 ## 5. Verification Method
-- **Implementation Validation**: The implementer will create the files and install dependencies.
-- **Command**: Run `python server/verify_backend.py`.
-- **Success Criteria**: The script exits with code `0`, and its output confirms that `hitl_interrupt` was intercepted, ID was parsed, resume endpoint returned 200, and the stream successfully reached `completed`.
+1. 执行文件恢复与 `App.tsx` 修改后，运行 `npm run dev`（确保在 frontend 目录下）。
+2. 在浏览器中打开并访问首页，验证：
+   - 是否出现 "Patent X" Logo 和 "Tech Is All You Need" 的打字机动画。
+   - 鼠标悬停在输入框（UploadHub）时，底层极光背景是否会动态放大（测试 `isHovered` 绑定）。
+   - 输入文本并点击提交后，UI 是否顺利流转到 `THINKING` 阶段（验证 `onUpload` 链路）。

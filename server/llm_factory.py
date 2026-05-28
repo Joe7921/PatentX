@@ -69,8 +69,15 @@ class MockLLMClient:
             messages = []
             if system_instruction:
                 messages.append({"role": "system", "content": system_instruction})
-            messages.append({"role": "user", "content": prompt})
-            return await self._call_local_fallback_template(messages, tools)
+            import os
+            mock_module = os.getenv("MOCK_INJECTION_MODULE")
+            if mock_module:
+                print("[MOCK_TRANSPORT] Using mock LLM fallback")
+                import importlib
+                mock = importlib.import_module(mock_module)
+                return await mock.mock_llm_generate(messages, tools, self.blackboard)
+            else:
+                raise RuntimeError(f"All LLM models failed and no mock module injected. Last error: {e}")
 
     async def _call_model(self, model_name: str, prompt: str, system_instruction: str, tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         # 运行时动态热加载 .env 文件，保障宿主进程即使不重启也能即时应用最新的凭证改动
@@ -197,8 +204,15 @@ class MockLLMClient:
                 except Exception as fe:
                     pass
             
-            # 高质量本地模板降级兜底逻辑
-            return await self._call_local_fallback_template(messages, tools)
+            import os
+            mock_module = os.getenv("MOCK_INJECTION_MODULE")
+            if mock_module:
+                print("[MOCK_TRANSPORT] Using mock LLM fallback")
+                import importlib
+                mock = importlib.import_module(mock_module)
+                return await mock.mock_llm_generate(messages, tools, self.blackboard)
+            else:
+                raise RuntimeError(f"All LLM models failed in chat and no mock module injected. Last error: {e}")
 
     async def _call_model_chat(self, model_name: str, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         load_dotenv()
@@ -289,125 +303,7 @@ class MockLLMClient:
 
             raise ValueError(f"Failed to connect to LLM API ({mapped_model}): {str(e)}")
 
-    async def _call_local_fallback_template(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-        import json
-        msg = "[MOCK_TRANSPORT] 检测到网络异常或熔断，当前请求已切换至本地 Mock 模板生成。"
-        print(msg)
-        if self.blackboard:
-            await self.blackboard.add_debate_log(msg)
 
-        # Get last user message to reflect it dynamically
-        last_user_msg = ""
-        for m in reversed(messages):
-            if m.get("role") == "user":
-                last_user_msg = str(m.get("content", ""))
-                break
-        last_user_msg_truncated = (last_user_msg[:100] + "...") if len(last_user_msg) > 100 else last_user_msg
-
-        tool_calls = None
-        content_text = ""
-        
-        # 统计当前轮数
-        assistant_msgs = [m for m in messages if m.get("role") == "assistant" and "tool_calls" in m]
-        current_round = len(assistant_msgs) + 1
-
-        print(f"[DEBUG MOCK] current_round: {current_round}, available tools: {[t.get('function', {}).get('name') for t in (tools or [])]}")
-
-        # 获取历史调用过的工具
-        called_tools = set()
-        for m in messages:
-            if m.get("role") == "assistant" and m.get("tool_calls"):
-                for tc in m["tool_calls"]:
-                    if isinstance(tc, dict):
-                        called_tools.add(tc.get("function", {}).get("name"))
-                    else:
-                        called_tools.add(getattr(tc, "function", None) and getattr(tc.function, "name", None))
-        print(f"[DEBUG MOCK] called_tools = {called_tools}")
-
-        if tools and current_round <= 3:
-            tool_calls = []
-            import hashlib
-            seed_str = f"{last_user_msg}_{current_round}"
-            seed = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
-            
-            # 从所有工具中找出一个未被调用的工具，决定性选择
-            available_tool_names = sorted([t.get("function", {}).get("name") for t in tools])
-            uncalled_tools = sorted([name for name in available_tool_names if name not in called_tools])
-            
-            target_tools_to_call = []
-            if uncalled_tools:
-                num_to_pick = (seed % min(2, len(uncalled_tools))) + 1
-                temp_seed = seed
-                for _ in range(num_to_pick):
-                    if not uncalled_tools: break
-                    idx = temp_seed % len(uncalled_tools)
-                    target_tools_to_call.append(uncalled_tools.pop(idx))
-                    temp_seed //= max(1, len(uncalled_tools))
-            else:
-                target_tools_to_call.append(available_tool_names[seed % len(available_tool_names)])
-                
-            for func_name in target_tools_to_call:
-                tool_schema = next((t for t in tools if t.get("function", {}).get("name") == func_name), None)
-                if not tool_schema:
-                    continue
-                    
-                props = tool_schema.get("function", {}).get("parameters", {}).get("properties")
-                if props is None:
-                    props = {}
-                mock_args = {}
-                for k, v in props.items():
-                    val_type = v.get("type", "string")
-                    prop_seed = int(hashlib.md5(f"{seed}_{k}".encode()).hexdigest(), 16)
-                    if val_type == "string":
-                        if k in ["query", "claim", "domestic_feature", "feature"]:
-                            import re
-                            words = sorted(re.findall(r'\b[A-Za-z]+\b', last_user_msg))
-                            if len(words) > 3:
-                                sample_k = min(5, len(words))
-                                sample_words = []
-                                t_seed = prop_seed
-                                for _ in range(sample_k):
-                                    if not words: break
-                                    idx = t_seed % len(words)
-                                    sample_words.append(words.pop(idx))
-                                    t_seed //= max(1, len(words))
-                                mock_args[k] = " ".join(sample_words)
-                            else:
-                                mock_args[k] = f"mock_{k}_{(prop_seed % 900) + 100}"
-                        else:
-                            mock_args[k] = f"mock_{k}_{(prop_seed % 900) + 100}"
-                    elif val_type in ("integer", "number"):
-                        mock_args[k] = (prop_seed % 100) + 1
-                    elif val_type == "boolean":
-                        mock_args[k] = bool(prop_seed % 2)
-                    elif val_type == "object":
-                        mock_args[k] = {"mock_key": "mock_val"}
-                    elif val_type == "array":
-                        mock_args[k] = ["mock_item"]
-                    else:
-                        mock_args[k] = f"mock_{val_type}"
-
-                
-                tool_calls.append({
-                    "id": f"call_mock_{current_round}_{func_name}_{(seed % 9000) + 1000}",
-                    "type": "function",
-                    "function": {
-                        "name": func_name,
-                        "arguments": json.dumps(mock_args, ensure_ascii=False)
-                    }
-                })
-                
-            if tool_calls:
-                content_text = f"[MOCK_TRANSPORT] 正在随机调用 {len(tool_calls)} 个工具以推进工作流程 (通用 Fallback)。收到您的输入: '{last_user_msg_truncated}'"
-            else:
-                tool_calls = None
-        else:
-            content_text = "[MOCK_TRANSPORT] Fallback triggered. Returning standard error string to allow higher-level engine recovery."
-            
-        return {
-            "content": content_text,
-            "tool_calls": tool_calls
-        }
 
 
 

@@ -1,31 +1,32 @@
-# BRIEFING — 2026-05-23T19:15:50+08:00
+# BRIEFING — 2026-05-26T09:56:22Z
 
 ## Mission
-Empirically verify the correctness of Milestone 1: Backend Mock (Iter 2) for the PatentX project, including endpoints, CORS, and memory leaks.
+Adversarially challenge the work product of Iteration 2 for the "Dynamic Topo UI and PiP Drafting Window" milestone.
 
 ## 🔒 My Identity
-- Archetype: EMPIRICAL CHALLENGER
+- Archetype: Challenger
 - Roles: critic, specialist
 - Working directory: d:\Antigravity projects\PatentX\.agents\challenger_m1_iter2_1
-- Original parent: fd27d46e-ea21-4f04-ac33-f482275ed91a
-- Milestone: Milestone 1: Backend Mock (Iter 2)
-- Instance: 1 of 1
+- Original parent: 49fe3da3-8015-4243-bd85-3071863afcfd
+- Milestone: Dynamic Topo UI and PiP Drafting Window
+- Instance: Iteration 2 Challenger
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
-- Verify CORS and memory leaks fixes
 
 ## Current Parent
-- Conversation ID: fd27d46e-ea21-4f04-ac33-f482275ed91a
-- Updated: not yet
+- Conversation ID: 49fe3da3-8015-4243-bd85-3071863afcfd
+- Updated: 2026-05-26T09:56:22Z
 
 ## Review Scope
-- **Files to review**: d:\Antigravity projects\PatentX\server and d:\Antigravity projects\PatentX\frontend
+- **Files to review**: `frontend/src/components/DynamicTopoGraph.tsx`, `frontend/src/components/DocumentPreview.tsx`
 - **Interface contracts**: PatentX project specs
-- **Review criteria**: endpoints, CORS, memory leaks
+- **Review criteria**:
+  - `DynamicTopoGraph.tsx` virtualization logic: varying item widths, spacer sizing, disappearing nodes, errors.
+  - `DocumentPreview.tsx` stream builder logic: length mismatch between chunks, missing dependencies, infinite loops, skipped characters.
 
 ## Key Decisions Made
-- Setting up workspace.
+- [TBD]
 
 ## Artifact Index
-- handoff.md — Verification findings
+- [TBD]

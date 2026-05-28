@@ -86,3 +86,76 @@ After the entire Agentic flow completes, the view transitions to the existing `D
 ### Build Integrity
 - [ ] `npm run build` in the `frontend/` directory completes with zero errors
 - [ ] The backend server starts without import errors and the full SSE flow can be triggered via `GET /api/v1/analyze/stream`
+
+## Follow-up — 2026-05-26T12:18:07Z
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched
+> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+
+对新重构的 PatentX 评估页面前端 React 代码进行深度审查。目标是发现并直接修复代码中为了走捷径而留下的“偷懒”成分（如硬编码、缺乏容错、敷衍的布局逻辑等），同时找回在近期修改中丢失的首屏（LandingPage）组件。
+
+Working directory: d:\Antigravity projects\PatentX
+Integrity mode: benchmark
+
+## Requirements
+
+### R1. 深度审查与全面修复 (Scope & Coverage)
+审查范围必须包含核心 UI 组件（如 `DiagnosticDashboard.tsx`, `DraftingPiP.tsx`, `DynamicTopoGraph.tsx`, `App.tsx`）以及状态管理层（`useStore.ts`, `agenticTypes.ts`）。发现任何代码异味（硬编码魔法值、`any` 类型滥用、缺少错误边界、重复渲染、未处理的异常流）时，必须直接修改代码进行重构。
+
+### R2. 找回丢失的 LandingPage 第一屏
+在近期的修改中，`App.tsx` 的 UPLOAD 状态下 `LandingPage` 组件被意外替换为了局部的 `UploadHub`，导致精心设计的首屏视觉（Slogan、背景等）丢失。必须将 `LandingPage` 重新集成到应用入口中，确保 `UploadHub` 能够作为首屏的一部分优雅嵌入。
+
+### R3. 严格的技术栈限制 (Integrity Constraints)
+绝对禁止使用 npm 安装任何新的第三方依赖库。所有的修复、性能优化和视觉调整，必须且只能使用项目现有的技术栈（React、framer-motion、Tailwind CSS、Zustand、lucide-react 等）。
+
+## Acceptance Criteria
+
+### 1. 构建与类型安全
+- [ ] 运行 `npm run build` 必须零报错（不出现任何 TypeScript 类型缺失或构建异常）。
+- [ ] 所有的组件 Props 接口与 Zustand Store 状态类型均需有严格定义，消除敷衍的 `as any` 写法。
+
+### 2. 逻辑与视觉还原
+- [ ] 检查 `App.tsx`，必须确认在 `step === 'UPLOAD'` 时渲染的是 `LandingPage`（而非仅仅是 `UploadHub`）。
+- [ ] `LandingPage` 中的输入事件能够正确打通到 Zustand Store 的分析启动流。
+
+### 3. 代码质量提升
+- [ ] `useStore.ts` 和 UI 组件中明显的长函数被合理拆分，且去除了硬编码的“临时”Mock 数据。
+- [ ] 动画组件（framer-motion）的使用规范，避免在状态高频更新（如流式写入）时造成不必要的全量 Re-render 卡顿。
+
+## Follow-up — 2026-05-27T02:00:32+08:00
+
+# Teamwork Project Prompt — Draft
+
+> Status: Launched.
+> Goal: Complete implementation and verification of robust architecture features.
+
+Implement architecture robustness features (Circuit Breaker, Argument Processor, Mocking explicit tags) into the PatentX backend based on the agreed implementation plan.
+
+Working directory: d:\Antigravity projects\PatentX
+Integrity mode: development
+
+## Reference Material
+- Implementation Plan: C:\Users\zhouh\.gemini\antigravity\brain\60536a7a-e3a9-4266-ae31-1c353c5978d0\implementation_plan.md
+
+## Requirements
+
+### R1. Implement Circuit Breaker
+Modify server/llm_factory.py to add a global failure counter and circuit breaker timeout. If failures exceed a threshold for a specific model, short-circuit and fallback immediately. Log heavily using the exact prefix [CIRCUIT_BREAKER].
+
+### R2. Label Mock Transport Explicitly
+Modify server/llm_factory.py (specifically _call_local_fallback_template) and tools/patent_tools.py (search_academic_db) to prominently output [MOCK_TRANSPORT] in their return values or logs whenever they use mock fallback data.
+
+### R3. Centralize Argument Processor
+Modify server/agentic_engine.py to extract the tool argument correction/padding logic (specifically for generate_feature_alignment_matrix) into a separate _argument_pre_processor function. Log interventions with the prefix [ARGUMENT_PROCESSOR].
+
+### R4. Language and Safety Rules
+The teamwork agents MUST follow the global user rules: use Simplified Chinese for all replies/comments, do not modify UI/CSS without permission, and never use PowerShell to modify file contents (must use MCP file tools to preserve UTF-8 without BOM).
+
+## Acceptance Criteria
+
+### Verification Checks
+- [ ] Integration test suite python server/run_test.py passes with 100% success rate.
+- [ ] Manual inspection of code confirms [CIRCUIT_BREAKER] and [MOCK_TRANSPORT] and [ARGUMENT_PROCESSOR] tags are correctly implemented.
+- [ ] agentic_engine.py is refactored properly without breaking the multi-agent reaction loop.

@@ -7,7 +7,6 @@ interface TypewriterSloganProps {
 }
 
 export default function TypewriterSlogan({ text, onComplete }: TypewriterSloganProps) {
-  // Split text into characters
   const characters = Array.from(text);
 
   const containerVariants = {
@@ -15,8 +14,8 @@ export default function TypewriterSlogan({ text, onComplete }: TypewriterSloganP
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.06, // 打字机单字出现间隔
-        delayChildren: 0.3,    // 开屏稍作停顿
+        staggerChildren: 0.06, 
+        delayChildren: 0.3,
       },
     },
   };

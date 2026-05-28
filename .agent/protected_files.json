@@ -1,0 +1,10 @@
+{
+  "description": "这是受保护的核心组件名单。任何常规业务 Agent 或多智能体团队在执行重构或子任务时，绝对禁止修改、替换或删除以下文件。如果必须修改这些文件，必须先向人类用户申请覆盖授权。",
+  "protected_files": [
+    "frontend/src/App.tsx",
+    "frontend/src/components/Sidebar.tsx",
+    "frontend/src/components/UploadHub.tsx",
+    "frontend/src/components/LandingPage.tsx",
+    "frontend/src/components/AuroraBackground.tsx"
+  ]
+}

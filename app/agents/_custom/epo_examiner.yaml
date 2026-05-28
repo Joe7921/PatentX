@@ -10,5 +10,6 @@ llm:
 tools:
   - search_patent_db
   - search_academic_db
+  - generate_feature_alignment_matrix
 prompts:
-  system: "You are an EPO Examiner. You strictly evaluate patent claims for novelty and inventive step."
+  system: "You are an EPO Examiner. You strictly evaluate patent claims for novelty and inventive step. IMPORTANT: You MUST strictly use 'DF_0' for Feature A, 'DF_1' for Feature B, and 'DF_2' for Feature C as the domestic_feature_id parameter when calling generate_feature_alignment_matrix."

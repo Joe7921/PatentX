@@ -1,33 +1,41 @@
-# BRIEFING — 2026-05-23T19:15:50+08:00
+# BRIEFING — 2026-05-26T17:56:22+08:00
 
 ## Mission
-Review the implementation of Milestone 1: Backend Mock and frontend integration for the PatentX project.
+Review the work product of Iteration 2 for the "Dynamic Topo UI and PiP Drafting Window" milestone.
 
 ## 🔒 My Identity
-- Archetype: Reviewer AND adversarial critic
+- Archetype: teamwork_preview_reviewer
 - Roles: reviewer, critic
 - Working directory: d:\Antigravity projects\PatentX\.agents\reviewer_m1_iter2_2
-- Original parent: fd27d46e-ea21-4f04-ac33-f482275ed91a
-- Milestone: Milestone 1: Backend Mock
-- Instance: Iteration 2, Reviewer 2
+- Original parent: 49fe3da3-8015-4243-bd85-3071863afcfd
+- Milestone: Dynamic Topo UI and PiP Drafting Window
+- Instance: Iteration 2, instance 2
 
 ## 🔒 Key Constraints
 - Review-only — do NOT modify implementation code
-- Check for memory leak, CORS crash, missing comments in backend
-- Check for genuine EventSource integration in frontend
-- Use simplified Chinese for all communications and outputs
+- Review dimensions: correctness, completeness, robustness, and interface conformance. Run builds/tests to verify.
 
 ## Current Parent
-- Conversation ID: fd27d46e-ea21-4f04-ac33-f482275ed91a
-- Updated: 2026-05-23T19:15:50+08:00
+- Conversation ID: 49fe3da3-8015-4243-bd85-3071863afcfd
+- Updated: not yet
 
 ## Review Scope
-- **Files to review**: d:\Antigravity projects\PatentX\server and d:\Antigravity projects\PatentX\frontend
-- **Interface contracts**: ORIGINAL_REQUEST.md
-- **Review criteria**: Correctness, completeness, robustness, and interface conformance
+- **Files to review**: frontend/src/components/DocumentPreview.tsx, frontend/src/App.tsx, frontend/src/components/DynamicTopoGraph.tsx
+- **Interface contracts**: PROJECT.md / SCOPE.md
+- **Review criteria**: correctness, completeness, robustness, and interface conformance.
+
+## Review Checklist
+- **Items reviewed**: none yet
+- **Verdict**: pending
+- **Unverified claims**: all
+
+## Attack Surface
+- **Hypotheses tested**: none yet
+- **Vulnerabilities found**: none yet
+- **Untested angles**: PiP draggable interaction, stream optimization logic, virtualization math
 
 ## Key Decisions Made
 - [TBD]
 
 ## Artifact Index
-- [TBD]
+- handoff.md — [TBD]

@@ -36,29 +36,36 @@ def _load_agent_config(agent_name: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _argument_pre_processor(tool_name: str, raw_args: Any, blackboard: Blackboard) -> Any:
+def _argument_pre_processor(function_name: str, arguments: Any, blackboard: Blackboard = None) -> Any:
     """统一的参数预处理器，负责对输入进行清洗和补全"""
     try:
-        if isinstance(raw_args, str):
-            tc_args = json.loads(raw_args)
+        if isinstance(arguments, str):
+            tc_args = json.loads(arguments)
         else:
-            tc_args = raw_args
+            tc_args = arguments
     except Exception:
-        return "[ARGUMENT_PROCESSOR] Tool Error: Invalid JSON arguments"
+        error_msg = "[ARGUMENT_PROCESSOR] Tool Error: Invalid JSON arguments"
+        print(error_msg)
+        return error_msg
 
     if not isinstance(tc_args, dict):
-        return "[ARGUMENT_PROCESSOR] Tool Error: Arguments must be a JSON object"
+        error_msg = "[ARGUMENT_PROCESSOR] Tool Error: Arguments must be a JSON object"
+        print(error_msg)
+        return error_msg
 
-    if tool_name == "generate_feature_alignment_matrix":
+    if function_name == "generate_feature_alignment_matrix":
         required = ["domestic_feature_id", "domestic_feature", "prior_art_id", "prior_art_feature"]
         for req in required:
             if req not in tc_args:
-                return f"[ARGUMENT_PROCESSOR] Tool Error: Missing required parameter '{req}'"
+                error_msg = f"[ARGUMENT_PROCESSOR] Tool Error: Missing required parameter '{req}'"
+                print(error_msg)
+                return error_msg
         
         # Keep the logging if it fixes simple formatting issues
         if "expert_annotations" not in tc_args or not isinstance(tc_args["expert_annotations"], str):
             print("[ARGUMENT_PROCESSOR] Auto-filling expert_annotations for generate_feature_alignment_matrix")
-            tc_args["expert_annotations"] = json.dumps(getattr(blackboard, "expert_annotations", {}), ensure_ascii=False)
+            annotations = getattr(blackboard, "expert_annotations", {}) if blackboard else {}
+            tc_args["expert_annotations"] = json.dumps(annotations, ensure_ascii=False)
 
     return tc_args
 
@@ -370,10 +377,11 @@ async def execute_agent_react(
                 })
                 
                 # 同步到黑板
-                if tc_name == "search_patent_db":
-                    await _sync_search_results_to_blackboard(result_str, blackboard)
-                elif tc_name == "generate_feature_alignment_matrix":
-                    await _sync_matrix_item_to_blackboard(tc_args.get("prior_art_id"), result_str, blackboard)
+                if not is_error:
+                    if tc_name == "search_patent_db":
+                        await _sync_search_results_to_blackboard(result_str, blackboard)
+                    elif tc_name == "generate_feature_alignment_matrix":
+                        await _sync_matrix_item_to_blackboard(tc_args.get("prior_art_id"), result_str, blackboard)
 
                 messages.append({
                     "role": "tool",

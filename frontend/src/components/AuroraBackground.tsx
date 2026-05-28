@@ -17,11 +17,7 @@ interface Particle {
   damping: number;
 }
 
-interface AuroraBackgroundProps {
-  isHovered?: boolean;
-}
-
-export default function AuroraBackground({ isHovered = false }: AuroraBackgroundProps) {
+export default function AuroraBackground({ isHovered = false }: { isHovered?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isHoveredRef = useRef(isHovered);
 
@@ -32,6 +28,7 @@ export default function AuroraBackground({ isHovered = false }: AuroraBackground
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -54,8 +51,8 @@ export default function AuroraBackground({ isHovered = false }: AuroraBackground
       { r: 200, g: 120, b: 255, a: 0.25 },  // 清透粉紫
       { r: 80, g: 220, b: 240, a: 0.35 },  // 清透青蓝
     ];
-    // 复制 5 组，总共 15 个极光球，均匀铺满整个输入舱背部
-    const colors = [...baseColors, ...baseColors, ...baseColors, ...baseColors, ...baseColors];
+    // 复制两组，总共 6 个极光球，均匀铺满整个输入舱背部
+    const colors = [...baseColors, ...baseColors];
 
     const particles: Particle[] = colors.map((c, i) => {
       return {
@@ -79,15 +76,15 @@ export default function AuroraBackground({ isHovered = false }: AuroraBackground
 
     const draw = () => {
       ctx.clearRect(0, 0, width, height);
-      ctx.globalCompositeOperation = 'screen';
+      ctx.globalCompositeOperation = 'multiply';
 
       const time = (Date.now() - startTime) * 0.0008;
       const hovered = isHoveredRef.current;
 
       particles.forEach((p, index) => {
-        // 让 15 个球均匀分布在容器宽度的 -10% 到 110% 之间，形成一条完整的光晕带
+        // 让 6 个球均匀分布在容器宽度的 10% 到 90% 之间，形成一条完整的光晕带
         const percent = particles.length > 1 ? index / (particles.length - 1) : 0.5;
-        const homeX = -width * 0.1 + (width * 1.2 * percent);
+        const homeX = width * 0.1 + (width * 0.8 * percent);
         const homeY = height / 2;
 
         const spreadX = hovered ? width * 0.2 : width * 0.1;
@@ -111,9 +108,8 @@ export default function AuroraBackground({ isHovered = false }: AuroraBackground
         p.x += p.vx;
         p.y += p.vy;
 
-        // 响应式半径，悬停时按比例放大
-        const baseRadius = Math.max(150, width / 10);
-        const targetRadius = hovered ? baseRadius * 1.3 : baseRadius;
+        // 半径适中，6 个球叠加足以填满空隙
+        const targetRadius = hovered ? 160 : 120;
         p.radius += (targetRadius - p.radius) * 0.1;
 
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
@@ -151,4 +147,4 @@ export default function AuroraBackground({ isHovered = false }: AuroraBackground
       }}
     />
   );
-};
+}

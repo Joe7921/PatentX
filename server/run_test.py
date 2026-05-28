@@ -22,6 +22,7 @@ def main():
     print("Starting FastAPI dev server via uvicorn with failure injection...")
     server_env = os.environ.copy()
     server_env["INJECT_LLM_FAILURE"] = "true"
+    server_env["MOCK_INJECTION_MODULE"] = "testing_mocks"
     server_proc = subprocess.Popen(
         ["py", "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8090"],
         cwd=server_dir,
@@ -49,6 +50,7 @@ def main():
         env = os.environ.copy()
         env["TEST_PORT"] = "8090"
         env["INJECT_LLM_FAILURE"] = "true"
+        env["MOCK_INJECTION_MODULE"] = "testing_mocks"
         
         test_res = subprocess.run(
             ["py", "verify_backend.py"],

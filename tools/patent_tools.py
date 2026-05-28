@@ -6,101 +6,47 @@ from typing import List, Dict, Any, Tuple
 
 import re
 
-class PatentDatabase:
-    @staticmethod
-    def recursive_retrieve(claim_text: str) -> List[Tuple[str, Dict[str, Any]]]:
-        """
-        Parent-Child Recursive Retrieval 仿真:
-        解析输入的国内权利要求 claim_text 中的关键词，动态生成相关的 Mock 专利数据，完全去除硬编码关联。
-        """
-        results = []
-        
-        # 提取 claim_text 中的有效词汇用于生成 mock 专利
-        words = re.findall(r'\b\w+\b', claim_text)
-        if len(words) < 3:
-            words.extend(["system", "method", "device", "apparatus", "processing"])
-            
-        import hashlib
-        seed = int(hashlib.md5(claim_text.encode()).hexdigest(), 16)
-        
-        num_patents = (seed % 2) + 2
-        for i in range(num_patents):
-            pid = f"EP{(seed + i) % 9000000 + 1000000}A1"
-            
-            sorted_words = sorted(words)
-            sample_words = []
-            temp_seed = seed + i
-            k = min(3, len(sorted_words))
-            for _ in range(k):
-                if not sorted_words: break
-                idx = temp_seed % len(sorted_words)
-                sample_words.append(sorted_words.pop(idx))
-                temp_seed //= max(1, len(sorted_words))
-            
-            title = f"Dynamic system for {sample_words[0]} and {sample_words[1]}" if len(sample_words) > 1 else f"Dynamic system for {sample_words[0]}"
-            if len(sample_words) >= 3:
-                claim_1 = f"A method involving {sample_words[0]}, comprising: processing {sample_words[1]} to generate {sample_words[2]}."
-            elif len(sample_words) == 2:
-                claim_1 = f"A method involving {sample_words[0]}, comprising: processing {sample_words[1]}."
-            else:
-                claim_1 = f"A method involving {sample_words[0]}."
-            
-            features = []
-            for j, w in enumerate(sample_words):
-                features.append({
-                    "id": f"{pid}_F{j+1}",
-                    "text": f"a processing unit configured for {w}",
-                    "focus": f"{w} handling"
-                })
-                
-            mock_patent = {
-                "title": title,
-                "patent_family": f"US{(seed + i) % 90000000 + 10000000}B2",
-                "claim_1": claim_1,
-                "features": features
-            }
-            results.append((pid, mock_patent))
-            
-        return results
+
 
 def search_patent_db(query: str) -> List[Tuple[str, Dict[str, Any]]]:
     """
     检索专利库，召回嵌套的 EP 专利父块与子特征
     """
-    return PatentDatabase.recursive_retrieve(query)
+    import os
+    mock_module = os.getenv("MOCK_INJECTION_MODULE")
+    if mock_module:
+        print("[MOCK_TRANSPORT] Using mock database search")
+        import importlib
+        mock = importlib.import_module(mock_module)
+        return mock.mock_search_patent_db(query)
+    
+    # 真实实现依赖系统内的 api_adapters，这里通过新建 BigQueryAdapter 实例调用
+    try:
+        import sys
+        # Ensure we can import from server
+        parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if parent_dir not in sys.path:
+            sys.path.append(parent_dir)
+        from server.adapters.bigquery_adapter import BigQueryAdapter
+        adapter = BigQueryAdapter({}) 
+        results = adapter.retrieve(query)
+        return [(r["id"], r) for r in results]
+    except Exception as e:
+        raise RuntimeError(f"Failed to query real patent database: {e}")
 
 def search_academic_db(query: str) -> str:
     """
-    Mock: 模拟学术文献检索 (非专利文献 NPL)
+    学术文献检索 (非专利文献 NPL)
     """
-    import hashlib
-    seed = int(hashlib.md5(query.encode()).hexdigest(), 16)
+    import os
+    mock_module = os.getenv("MOCK_INJECTION_MODULE")
+    if mock_module:
+        print("[MOCK_TRANSPORT] Using mock database search")
+        import importlib
+        mock = importlib.import_module(mock_module)
+        return mock.mock_search_academic_db(query)
     
-    journals = ['Nature', 'Science', 'IEEE Transactions on Quantum Computing', 'ACM Computing Surveys']
-    journal = journals[seed % len(journals)]
-    volume = (seed % 100) + 1
-    year = (seed % 26) + 2000
-    
-    words = re.findall(r'\b\w+\b', query)
-    words = sorted([w for w in words if len(w) > 2])
-    if not words:
-        words = ["system", "method", "analysis", "technology"]
-    
-    k = min(2, len(words))
-    sample_words = []
-    temp_seed = seed
-    for _ in range(k):
-        if not words: break
-        idx = temp_seed % len(words)
-        sample_words.append(words.pop(idx))
-        temp_seed //= max(1, len(words))
-        
-    title_words = " and ".join(sample_words).title() if sample_words else "Technology"
-    title = f"Advances in {title_words}"
-    
-    msg = f"[MOCK_TRANSPORT] 找到与 '{query}' 相关的学术引文：{title} - {journal}, Vol. {volume} ({year})。"
-    print(msg)
-    return msg
+    raise NotImplementedError("Academic DB search not implemented in production.")
 
 def generate_feature_alignment_matrix(
     domestic_feature_id: str,

@@ -58,3 +58,29 @@
 - [x] 编写详细的 iPhone 免安装 Web 远程控制台部署与 Vite 服务跨端发布指南。
 - [x] 完成项目最终 E2E 与 Forensic Auditor 二次验证，提交 Victory Claim。
 
+## 全自主 Agentic Workflow 重构（当前）
+### M1：MCP Server 建设（工具层）
+- [x] 开发 `server/mcp_server.py` 封装 `patent_tools` 为 MCP 工具
+- [x] 开发 `server/mcp_client.py` 统一路由调用
+### M2：LLMFactory 升级
+- [x] 修改 `server/llm_factory.py` 支持 `tools` 与 `tool_calls` 解析
+### M3：agentic_engine.py 核心重写
+- [x] 改造 `agentic_engine.py` 为真正的 ReAct 循环
+- [x] 动态提取 Blackboard 上下文
+- [x] LLM 自主决定工具调用与阶段流转
+### M4 & M5：YAML 扩展与前端适配
+- [x] 修改 `app/agents/_custom/*.yaml` 添加 tools 声明
+- [x] 前端类型兼容与 tool_args 展示
+
+## 里程碑 M_verify：全链路验证与缺陷修复
+- [x] 实施国内特征 ID 的双重规约方案：
+  - [x] 增加 `epo_examiner.yaml` 中的系统提示词约束
+  - [x] 增强 `agentic_engine.py` 初始 Prompt 中的 ID 传递与调用强规约
+  - [x] 实现 `patent_tools.py` 里的特征 ID 自适应自动归一化逻辑
+- [x] 运行集成测试进行 100% 成功验证（`py server/run_test.py`）
+
+## 里程碑 M_robustness: 系统鲁棒性与异常处理增强
+- [x] 实现熔断机制（Circuit Breaker）：在 `llm_factory.py` 中增加模型调用失败计数，超过阈值则进入 30 秒熔断窗口并强制回退。
+- [x] 实现明确的 Mock 标注：对所有的异常 Fallback 返回数据，以及 `patent_tools.py` 的容错数据，统一添加 `[MOCK_TRANSPORT]` 前缀标注。
+- [x] 提取统一的参数处理器：在 `agentic_engine.py` 引入 `_argument_pre_processor`，集中处理不规范的 LLM 工具调用参数（如 ID 对齐和特征填充），并记录 `[ARGUMENT_PROCESSOR]` 日志。
+- [x] 完成 E2E 集成测试：执行 `py server/run_test.py` 并通过全部验证（包含对异常熔断注入情况下的行为验证）。

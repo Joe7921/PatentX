@@ -8,7 +8,6 @@ from typing import List, Dict, Any
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from adapters.base_adapter import BaseAdapter
-from tools.patent_tools import PatentDatabase
 
 class BigQueryAdapter(BaseAdapter):
     def __init__(self, config: Dict[str, Any]):
@@ -66,22 +65,14 @@ class BigQueryAdapter(BaseAdapter):
             focus_keywords = ["patent"]  # 兜底焦点
             
         if self.mock_fallback:
-            # 仿真获取 BigQuery 数据
-            raw_results = PatentDatabase.recursive_retrieve(safe_query)
-            processed_results = []
-            
-            for pid, pdata in raw_results:
-                claim_text = pdata["claim_1"]
-                truncated_claim = self.truncate_by_budget(claim_text, focus_keywords)
-                
-                processed_results.append({
-                    "id": pid,
-                    "title": pdata["title"],
-                    "patent_family": pdata["patent_family"],
-                    "claim_1": truncated_claim,
-                    "features": pdata["features"]
-                })
-            return processed_results
+            import os
+            mock_module = os.getenv("MOCK_INJECTION_MODULE")
+            if mock_module:
+                import importlib
+                mock = importlib.import_module(mock_module)
+                return mock.mock_bigquery_retrieve(safe_query, focus_keywords, self.truncate_by_budget)
+            else:
+                raise RuntimeError("BigQuery client not initialized and no mock module injected.")
             
         else:
             # 真实 BigQuery 公开专利表查询
@@ -90,7 +81,7 @@ class BigQueryAdapter(BaseAdapter):
                 
             # 若初始化失败，自动降级为 Mock 防止崩溃
             if not self.client or self.mock_fallback:
-                print("[BigQuery] Client not initialized. Falling back to local Mock database.")
+                print("[BigQuery] Client not initialized. Checking for dynamic mock injection.")
                 self.mock_fallback = True
                 return self.retrieve(query)
                 
@@ -136,15 +127,22 @@ class BigQueryAdapter(BaseAdapter):
                     
                     # 动态生成子特征，以便契合下游 Agent 辩论对齐
                     features = []
-                    claim_lower = claim_text.lower()
-                    if "stream" in claim_lower or "stream" in title.lower():
-                        features.append({"id": f"{pid}_F1", "text": "a server interface configured to transmit analysis state changes as a text/event-stream", "focus": "SSE流式传输"})
-                        features.append({"id": f"{pid}_F2", "text": "a pause coordinator to detect a hitl_interrupt signal and suspend execution", "focus": "HITL中断与挂起"})
-                        features.append({"id": f"{pid}_F3", "text": "a resume hook to resume stream transmission upon receiving an authentication token", "focus": "鉴权恢复机制"})
-                    else:
-                        features.append({"id": f"{pid}_F1", "text": f"routing requests through a layer-1 judge agent for {title}", "focus": "法官协调代理"})
-                        features.append({"id": f"{pid}_F2", "text": "delegating claim analysis to a layer-2 novelty examiner agent", "focus": "审查员专精分析"})
-                        features.append({"id": f"{pid}_F3", "text": "compiling local feature discrepancies into a unified dispute matrix", "focus": "特征差异矩阵合并"})
+                    import re
+                    parts = [p.strip() for p in re.split(r'[,;.]', claim_text) if len(p.strip()) > 10]
+                    if not parts:
+                        parts = [claim_text]
+                    
+                    for i, part in enumerate(parts[:3]):
+                        matched_focus = next((kw for kw in focus_keywords if kw.lower() in part.lower()), None)
+                        if not matched_focus:
+                            words = re.findall(r'\b[A-Za-z]{5,}\b', part)
+                            matched_focus = words[0] if words else "Feature"
+                            
+                        features.append({
+                            "id": f"{pid}_F{i+1}",
+                            "text": part[:150],
+                            "focus": matched_focus.capitalize()
+                        })
                     
                     processed_results.append({
                         "id": pid,
@@ -155,13 +153,13 @@ class BigQueryAdapter(BaseAdapter):
                     })
                     
                 if not processed_results:
-                    print("[BigQuery] Real query returned 0 results. Falling back to local Mock database.")
+                    print("[BigQuery] Real query returned 0 results. Check mock injection.")
                     self.mock_fallback = True
                     return self.retrieve(query)
                     
                 return processed_results
                 
             except Exception as e:
-                print(f"[BigQuery] Real query execution failed: {e}. Falling back to local Mock database.")
+                print(f"[BigQuery] Real query execution failed: {e}. Check mock injection.")
                 self.mock_fallback = True
                 return self.retrieve(query)
